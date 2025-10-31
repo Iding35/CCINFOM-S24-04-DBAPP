@@ -20,7 +20,9 @@ VALUES
 	('321 Hardware Street', 'Cebu City', '6000'),
 	('77 Storage Way', 'Davao City', '8000'),
 	('98 Data Drive', 'Iloilo City', '5000'),
-	('12 Flash Court', 'Baguio City', '2600');
+	('12 Flash Court', 'Baguio City', '2600'),
+    ('123 Rome Ave', 'Baguio City', '1100'),
+    ('88 Korea Drive Ave', 'Commonwealth City', '9000');
     
 CREATE TABLE Suppliers(
 	supplier_id INT NOT NULL AUTO_INCREMENT,
@@ -108,6 +110,11 @@ CREATE TABLE Customers (
     CONSTRAINT customer_pk PRIMARY KEY (customer_id),
     CONSTRAINT customers_fk_addresses FOREIGN KEY (address_id) REFERENCES Addresses(address_id)
 ) AUTO_INCREMENT = 5001;
+
+INSERT INTO Customers (first_name, last_name, email, phone_number, password, address_id)
+VALUES
+	('Allysa', 'Chong', 'allysa_chong@gmail.com', '09123456789', 'RandomPass', 20010),
+    ('Fiona', 'Maningas', 'fiona_maningas@gmail.com', '09173456789', 'PassPass', 20011);
 
 CREATE TABLE Cart(
 	cart_id INT NOT NULL AUTO_INCREMENT,

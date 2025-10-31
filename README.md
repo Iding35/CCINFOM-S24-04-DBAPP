@@ -1,8 +1,14 @@
 # CCINFOM_G4_DBApplication_IT-Hardware_E-Commerce
 
-admin info:
+admin login:
 email: group4
 password: group4
+
+customer login (may dalawang user nako ininsert sa sql):
+email: allysa_chong@gmail.com
+password: RandomPass
+email: fiona_maningas@gmail.com
+password: PassPass
 
 change the database settings in **DBConnect** when necessary (root and password of your mysql settings)
 

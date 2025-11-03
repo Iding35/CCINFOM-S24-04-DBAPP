@@ -3,11 +3,10 @@ CREATE DATABASE dbhardware;
 USE dbhardware;
 
 CREATE TABLE Addresses(
-	address_id INT NOT NULL AUTO_INCREMENT,
+	address_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     street VARCHAR(50),
     city VARCHAR(50),
-    zip_code VARCHAR(6),
-    CONSTRAINT address_pk PRIMARY KEY (address_id)
+    zip_code VARCHAR(6)
 ) AUTO_INCREMENT = 20001;
 
 INSERT INTO Addresses (street, city, zip_code)
@@ -25,12 +24,11 @@ VALUES
     ('88 Korea Drive Ave', 'Commonwealth City', '9000');
     
 CREATE TABLE Suppliers(
-	supplier_id INT NOT NULL AUTO_INCREMENT,
+	supplier_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     company_name VARCHAR(80) NOT NULL,
     phone_number VARCHAR(11) NOT NULL,
     email VARCHAR(50) UNIQUE,
     address_id INT,
-    CONSTRAINT supplier_pk PRIMARY KEY (supplier_id),
     CONSTRAINT supplies_fk_addresses FOREIGN KEY (address_id) REFERENCES Addresses(address_id)
 ) AUTO_INCREMENT = 10010;
 
@@ -47,14 +45,13 @@ VALUES
 	('Crucial Memory Supplier', '09258901234', 'sales@crucialdist.com', 20009);
 
 CREATE TABLE Products (
-    product_id INT NOT NULL AUTO_INCREMENT,
+    product_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(50) NOT NULL,
     description VARCHAR(255) NOT NULL,
     brand VARCHAR(20) NOT NULL,
     price DECIMAL(10,2) NOT NULL,
     quantity INT NOT NULL,
     category ENUM('CPU','GPU','Motherboard','Memory (RAM)', 'Storage Device'),
-    CONSTRAINT product_pk PRIMARY KEY (product_id),
     CONSTRAINT product_name_unique UNIQUE (name)
 ) AUTO_INCREMENT = 1001;
 
@@ -73,14 +70,13 @@ VALUES
 	('Crucial P5 Plus 2TB PCIe Gen4 NVMe SSD', 'Read speeds up to 6600MB/s, ideal for gaming and productivity', 'Crucial', 8999.00, 40, 'Storage Device');
 
 CREATE TABLE Product_Supplier(
-	product_supplier_id INT NOT NULL AUTO_INCREMENT,
+	product_supplier_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	product_id INT NOT NULL,
     supplier_id INT NOT NULL,
     current_cost DECIMAL(10, 2) NOT NULL,
     quantity INT NOT NULL,
     order_datetime DATETIME NOT NULL,
     arrival_datetime DATETIME,
-    CONSTRAINT productsuppliers_pk PRIMARY KEY (product_supplier_id),
     CONSTRAINT productsuppliers_fk_suppliers FOREIGN KEY (supplier_id) REFERENCES Suppliers(supplier_id),
     CONSTRAINT productsuppliers_fk_products FOREIGN KEY (product_id) REFERENCES Products(product_id)
 ) AUTO_INCREMENT = 1;
@@ -100,14 +96,13 @@ VALUES
 	(1011, 10018, 8200.00, 45, '2025-10-07 08:45:00', '2025-10-12 11:30:00'); 
 
 CREATE TABLE Customers (
-    customer_id INT NOT NULL AUTO_INCREMENT,
+    customer_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     phone_number VARCHAR(11) UNIQUE,
     password VARCHAR(255) NOT NULL, 
     address_id INT,
-    CONSTRAINT customer_pk PRIMARY KEY (customer_id),
     CONSTRAINT customers_fk_addresses FOREIGN KEY (address_id) REFERENCES Addresses(address_id)
 ) AUTO_INCREMENT = 5001;
 
@@ -117,55 +112,49 @@ VALUES
     ('Fiona', 'Maningas', 'fiona_maningas@gmail.com', '09173456789', 'PassPass', 20011);
 
 CREATE TABLE Cart(
-	cart_id INT NOT NULL AUTO_INCREMENT,
+	cart_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     quantity INT NOT NULL,
     product_id INT NOT NULL,
     customer_id INT NOT NULL,
-    CONSTRAINT cart_pk PRIMARY KEY (cart_id),
     CONSTRAINT cart_fk_products FOREIGN KEY (product_id) REFERENCES Products(product_id),
     CONSTRAINT cart_fk_customers FOREIGN KEY (customer_id) REFERENCES Customers(customer_id)
 ) AUTO_INCREMENT = 4000;
     
 CREATE TABLE Orders(
-	order_id INT NOT NULL AUTO_INCREMENT,
+	order_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     total_price DECIMAL(10, 2) NOT NULL,
     status ENUM('Pending', 'Shipping', 'Completed', 'Returned') NOT NULL,
     order_datetime DATETIME,
     customer_id INT NOT NULL,
     shipping_address_id INT NOT NULL,
-    
-    CONSTRAINT order_pk PRIMARY KEY (order_id),
     CONSTRAINT order_fk_customers FOREIGN KEY (customer_id) REFERENCES Customers(customer_id),
     CONSTRAINT order_fk_address FOREIGN KEY (shipping_address_id) REFERENCES Addresses(address_id)
 ) AUTO_INCREMENT = 200;
     
 CREATE TABLE Order_Details(
-	order_detail_id INT NOT NULL AUTO_INCREMENT,
+	order_detail_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     quantity INT NOT NULL,
     unit_price DECIMAL(10, 2) NOT NULL,
     product_id INT NOT NULL,
     order_id INT NOT NULL,
-    CONSTRAINT orderdetails_pk PRIMARY KEY (order_detail_id),
     CONSTRAINT orderdetails_fk_products FOREIGN KEY (product_id) REFERENCES Products(product_id),
     CONSTRAINT orderdetails_fk_orders FOREIGN KEY (order_id) REFERENCES Orders(order_id)
 ) AUTO_INCREMENT = 300;
 
 CREATE TABLE Shipping(
-	shipping_id INT NOT NULL AUTO_INCREMENT,
+	shipping_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	shipping_datetime DATETIME,
 	arrival_datetime DATETIME,
     status ENUM('Shipping', 'Delivered') NOT NULL,
     order_id INT NOT NULL,
-    CONSTRAINT shipping_pk PRIMARY KEY (shipping_id),
     CONSTRAINT shipping_fk_orders FOREIGN KEY (order_id) REFERENCES Orders(order_id)
 ) AUTO_INCREMENT = 200;
 
 CREATE TABLE Returns (
-    return_id INT NOT NULL AUTO_INCREMENT,
+    return_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     order_detail_id INT NOT NULL,
     return_date DATETIME NOT NULL,
     return_reason VARCHAR(255),
     is_resellable BOOLEAN NOT NULL DEFAULT FALSE,
-    CONSTRAINT return_pk PRIMARY KEY (return_id),
     CONSTRAINT returns_fk_order_details FOREIGN KEY (order_detail_id) REFERENCES Order_Details(order_detail_id)
 ) AUTO_INCREMENT = 9000;

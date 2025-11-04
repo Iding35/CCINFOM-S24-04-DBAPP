@@ -112,7 +112,7 @@ VALUES
     ('Fiona', 'Maningas', 'fiona_maningas@gmail.com', '09173456789', 'PassPass', 20011);
 
 CREATE TABLE Cart(
-	cart_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+	cart_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY, --baka i REMOVE
     quantity INT NOT NULL,
     product_id INT NOT NULL,
     customer_id INT NOT NULL,

@@ -1,5 +1,4 @@
 CREATE DATABASE dbhardware;
-
 USE dbhardware;
 
 CREATE TABLE Addresses(
@@ -22,28 +21,50 @@ VALUES
 	('12 Flash Court', 'Baguio City', '2600'),
     ('123 Rome Ave', 'Baguio City', '1100'),
     ('88 Korea Drive Ave', 'Commonwealth City', '9000');
+    
+CREATE TABLE Vehicles(
+	vehicle_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    plate_number VARCHAR(20) NOT NULL,
+    type ENUM('Car', 'Motor', 'Truck'),
+    status ENUM('Operating', 'Malfunctioning')
+) AUTO_INCREMENT = 9000;
+
+INSERT INTO Vehicles (plate_number, type, status)
+VALUES
+    ('ABC123', 'Car', 'Operating'),
+    ('XYZ789', 'Motor', 'Operating'),
+    ('TRK456', 'Truck', 'Operating'),
+    ('MTR321', 'Motor', 'Operating'),
+    ('CAR654', 'Car', 'Operating'),
+    ('TRK987', 'Truck', 'Operating'),
+    ('MTR159', 'Motor', 'Malfunctioning'),
+    ('CAR753', 'Car', 'Malfunctioning'),
+    ('TRK852', 'Truck', 'Malfunctioning'),
+    ('CAR951', 'Car', 'Malfunctioning'),
+    ('MTR357', 'Motor', 'Malfunctioning');
 
 CREATE TABLE Delivery_Info(
 	delivery_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    vehicle_id INT NOT NULL,
     shipping_datetime DATETIME,
     arrival_datetime DATETIME,
-    status ENUM('Pending','Shipping', 'Complete')
+    status ENUM('Shipping', 'Complete'),
+    CONSTRAINT delivery_info_fk_vehicles FOREIGN KEY (vehicle_id) REFERENCES Vehicles(vehicle_id)
 ) AUTO_INCREMENT = 8001;
 
-INSERT INTO Delivery_Info (shipping_datetime, arrival_datetime, status)
+INSERT INTO Delivery_Info (vehicle_id, shipping_datetime, arrival_datetime, status)
 VALUES
-	
-    ('2025-10-01 09:30:00', '2025-10-01 10:30:00', 'Complete'), 
-	('2025-09-20 08:00:00', '2025-09-20 10:00:00', 'Complete'), 
-	('2025-09-22 10:00:00', '2025-09-22 11:15:00', 'Complete'), 
-	('2025-10-03 12:40:00', '2025-10-03 13:45:00', 'Complete'), 
-	('2025-09-25 07:20:00', '2025-09-25 08:30:00', 'Complete'), 
-	('2025-10-10 07:00:00', '2025-10-10 09:00:00', 'Complete'), 
-	('2025-09-28 05:30:00', '2025-09-28 07:30:00', 'Complete'),
-	('2025-09-28 07:45:00', '2025-09-28 09:00:00', 'Complete'), 
-	('2025-10-05 12:00:00', '2025-10-05 14:00:00', 'Complete'), 
-	('2025-09-26 12:15:00', '2025-09-26 15:15:00', 'Complete'), 
-	('2025-10-07 07:30:00', '2025-10-07 08:45:00', 'Complete');
+    (9000, '2025-10-01 09:30:00', '2025-10-01 10:30:00', 'Complete'), 
+	(9000, '2025-09-20 08:00:00', '2025-09-20 10:00:00', 'Complete'), 
+	(9001, '2025-09-22 10:00:00', '2025-09-22 11:15:00', 'Complete'), 
+	(9001, '2025-10-03 12:40:00', '2025-10-03 13:45:00', 'Complete'), 
+	(9002, '2025-09-25 07:20:00', '2025-09-25 08:30:00', 'Complete'), 
+	(9003, '2025-10-10 07:00:00', '2025-10-10 09:00:00', 'Complete'), 
+	(9003, '2025-09-28 05:30:00', '2025-09-28 07:30:00', 'Complete'),
+	(9004, '2025-09-28 07:45:00', '2025-09-28 09:00:00', 'Complete'), 
+	(9004, '2025-10-05 12:00:00', '2025-10-05 14:00:00', 'Complete'), 
+	(9005, '2025-09-26 12:15:00', '2025-09-26 15:15:00', 'Complete'), 
+	(9005, '2025-10-07 07:30:00', '2025-10-07 08:45:00', 'Complete');
     
 CREATE TABLE Suppliers(
 	supplier_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -103,6 +124,7 @@ CREATE TABLE Supplier_Shipment(
     CONSTRAINT supplier_shipment_fk_delivery_info FOREIGN KEY (delivery_id) REFERENCES Delivery_Info(delivery_id)
 ) AUTO_INCREMENT = 1;
 
+
 INSERT INTO Supplier_Shipment (product_id, supplier_id, product_cost, quantity, delivery_id)
 VALUES
 	(1001, 10015, 2800.00, 50, 8001), 
@@ -116,3 +138,69 @@ VALUES
 	(1009, 10016, 5200.00, 70, 8009), 
 	(1010, 10017, 2900.00, 90, 8010), 
 	(1011, 10018, 8200.00, 45, 8011);
+
+CREATE TABLE Customers (
+    customer_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    phone_number VARCHAR(11) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL, 
+    address_id INT NOT NULL,
+    CONSTRAINT customers_fk_addresses FOREIGN KEY (address_id) REFERENCES Addresses(address_id)
+) AUTO_INCREMENT = 6001;
+
+INSERT INTO Customers (first_name, last_name, email, phone_number, password, address_id)
+VALUES
+	('Allysa', 'Chong', 'allysa_chong@gmail.com', '09123456789', 'RandomPass', 20010),
+    ('Fiona', 'Maningas', 'fiona_maningas@gmail.com', '09173456789', 'PassPass', 20011);
+
+CREATE TABLE Cart(
+	cart_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    quantity INT NOT NULL,
+    product_id INT NOT NULL,
+    customer_id INT NOT NULL,
+    CONSTRAINT cart_fk_products FOREIGN KEY (product_id) REFERENCES Products(product_id),
+    CONSTRAINT cart_fk_customers FOREIGN KEY (customer_id) REFERENCES Customers(customer_id)
+) AUTO_INCREMENT = 4000;
+
+CREATE TABLE Orders(
+	order_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    payment_status ENUM ('Paid', 'Not Paid') NOT NULL,
+    status ENUM('Pending', 'Shipping', 'Completed', 'Returned') NOT NULL,
+    total_price DECIMAL(10, 2) NOT NULL,
+    order_datetime DATETIME,
+    customer_id INT NOT NULL,
+    shipping_address_id INT NOT NULL,
+    CONSTRAINT order_fk_customers FOREIGN KEY (customer_id) REFERENCES Customers(customer_id),
+    CONSTRAINT order_fk_address FOREIGN KEY (shipping_address_id) REFERENCES Addresses(address_id)
+) AUTO_INCREMENT = 7000;
+
+CREATE TABLE Order_Details(
+	order_detail_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    quantity INT NOT NULL,
+    unit_price DECIMAL(10, 2) NOT NULL,
+    product_id INT NOT NULL,
+    order_id INT NOT NULL,
+    CONSTRAINT orderdetails_fk_products FOREIGN KEY (product_id) REFERENCES Products(product_id),
+    CONSTRAINT orderdetails_fk_orders FOREIGN KEY (order_id) REFERENCES Orders(order_id)
+) AUTO_INCREMENT = 3000;
+
+CREATE TABLE Shipping(
+	shipping_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    order_id INT NOT NULL,
+    delivery_id INT NOT NULL,
+    CONSTRAINT shipping_fk_orders FOREIGN KEY (order_id) REFERENCES Orders(order_id),
+    CONSTRAINT shipping_fk_delivery_info FOREIGN KEY (delivery_id) REFERENCES Delivery_Info(delivery_id)
+) AUTO_INCREMENT = 2000;
+
+CREATE TABLE Returns (
+    return_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    order_detail_id INT NOT NULL,
+    product_quantity INT NOT NULL,
+    return_date DATETIME NOT NULL,
+    return_reason VARCHAR(255),
+    is_resellable BOOLEAN NOT NULL DEFAULT FALSE,
+    CONSTRAINT returns_fk_order_details FOREIGN KEY (order_detail_id) REFERENCES Order_Details(order_detail_id)
+) AUTO_INCREMENT = 9000;
+

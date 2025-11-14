@@ -26,22 +26,22 @@ CREATE TABLE Vehicles(
 	vehicle_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     plate_number VARCHAR(20) NOT NULL,
     type ENUM('Car', 'Motor', 'Truck'),
-    status ENUM('Operating', 'Malfunctioning')
+    status ENUM('Available', 'Occupied')
 ) AUTO_INCREMENT = 9000;
 
 INSERT INTO Vehicles (plate_number, type, status)
 VALUES
-    ('ABC123', 'Car', 'Operating'),
-    ('XYZ789', 'Motor', 'Operating'),
-    ('TRK456', 'Truck', 'Operating'),
-    ('MTR321', 'Motor', 'Operating'),
-    ('CAR654', 'Car', 'Operating'),
-    ('TRK987', 'Truck', 'Operating'),
-    ('MTR159', 'Motor', 'Malfunctioning'),
-    ('CAR753', 'Car', 'Malfunctioning'),
-    ('TRK852', 'Truck', 'Malfunctioning'),
-    ('CAR951', 'Car', 'Malfunctioning'),
-    ('MTR357', 'Motor', 'Malfunctioning');
+    ('ABC123', 'Car', 'Available'),
+    ('XYZ789', 'Motor', 'Available'),
+    ('TRK456', 'Truck', 'Available'),
+    ('MTR321', 'Motor', 'Available'),
+    ('CAR654', 'Car', 'Available'),
+    ('TRK987', 'Truck', 'Available'),
+    ('MTR159', 'Motor', 'Occupied'),
+    ('CAR753', 'Car', 'Occupied'),
+    ('TRK852', 'Truck', 'Occupied'),
+    ('CAR951', 'Car', 'Occupied'),
+    ('MTR357', 'Motor', 'Occupied');
 
 CREATE TABLE Delivery_Info(
 	delivery_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,

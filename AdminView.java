@@ -9,8 +9,8 @@ import javax.swing.table.DefaultTableModel;
 
 public class AdminView extends JFrame {
     
-    private final int PANEL_WIDTH = 1350;
-    private final int PANEL_HEIGHT = 700; 
+    private final int PANEL_WIDTH = 1500;
+    private final int PANEL_HEIGHT = 750; 
     
     //navigation buttons
     private JButton viewProductsButton;
@@ -25,6 +25,7 @@ public class AdminView extends JFrame {
     private JComboBox<String> updateProductFieldDropdown;
     private JTextField updateProductValueField;
     private JComboBox<String> categoryDropdown;
+    private JComboBox<String> statusDropdown;
     private JButton updateProductButton;
     
     //add new product
@@ -33,6 +34,7 @@ public class AdminView extends JFrame {
     private JTextField productBrandField;
     private JTextField productPriceField;
     private JComboBox<String> newProductCategoryDropdown;
+    private JComboBox<String> newProductStatusDropdown;
     private JButton addProductButton;
     
     //add new supplier
@@ -367,6 +369,11 @@ public class AdminView extends JFrame {
        };
        return new JComboBox<>(categories);
    }
+   
+   private JComboBox<String> createStatusDropdown(){
+	   String[] status = {"Active", "Inactive"};
+	   return new JComboBox<>(status);
+   }
 
     private JPanel createProductUpdatePanel() {
     	
@@ -374,12 +381,17 @@ public class AdminView extends JFrame {
         updateProductValueField = new JTextField(15);
         
         String[] updatableFields = {
-            "name", "description", "brand", "price", "quantity", "category"
+            "name", "description", "brand", "price", "quantity", "category", "status"
         };
         updateProductFieldDropdown = new JComboBox<>(updatableFields);
         
+        //not visible until they are selected
         categoryDropdown = createCategoryDropdown();
         categoryDropdown.setVisible(false);
+        
+        statusDropdown = createStatusDropdown();
+        statusDropdown.setVisible(false);
+        
         
         JPanel panel = createEastPanel(" Product Details Update ");
         
@@ -408,10 +420,11 @@ public class AdminView extends JFrame {
         // Row 3: New Value Label
         gbc.gridx = 0; gbc.gridy = 2; panel.add(valueLabel, gbc);
 
-        // Row 3: Input for category
+        // Row 3: Input for category or status
         JPanel inputContainer = new JPanel(new CardLayout());
         inputContainer.add(updateProductValueField, "TEXT_FIELD");
         inputContainer.add(categoryDropdown, "CATEGORY_DROPDOWN");
+        inputContainer.add(statusDropdown, "STATUS_DROPDOWN");
         
         ((CardLayout) inputContainer.getLayout()).show(inputContainer, "TEXT_FIELD");
         
@@ -421,7 +434,10 @@ public class AdminView extends JFrame {
             String selectedField = (String) updateProductFieldDropdown.getSelectedItem();
             if ("category".equals(selectedField)) {
                 cl.show(inputContainer, "CATEGORY_DROPDOWN");
-            } else {
+            } else if("status".equals(selectedField)) {
+            	cl.show(inputContainer, "STATUS_DROPDOWN");
+            }
+            else {
                 cl.show(inputContainer, "TEXT_FIELD");
             }
         });
@@ -443,6 +459,7 @@ public class AdminView extends JFrame {
         productBrandField = new JTextField(15);
         productPriceField = new JTextField(15);
         newProductCategoryDropdown = createCategoryDropdown();        
+        newProductStatusDropdown = createStatusDropdown();
         
         JPanel panel = createEastPanel(" Add New Product ");
         
@@ -455,12 +472,14 @@ public class AdminView extends JFrame {
         JLabel brandLabel = new JLabel("Brand:");
         JLabel priceLabel = new JLabel("Price:");
         JLabel categoryLabel = new JLabel("Category:");
+        JLabel statusLabel = new JLabel("Status:");
 
         nameLabel.setForeground(Color.WHITE);
         descriptionLabel.setForeground(Color.WHITE);
         brandLabel.setForeground(Color.WHITE);
         priceLabel.setForeground(Color.WHITE);
         categoryLabel.setForeground(Color.WHITE);
+        statusLabel.setForeground(Color.WHITE);
         addProductButton.setBackground(Color.decode("#ADD1DB"));
 
 
@@ -479,7 +498,10 @@ public class AdminView extends JFrame {
         gbc.gridx = 0; gbc.gridy = 4; panel.add(categoryLabel, gbc); 
         gbc.gridx = 1; gbc.gridy = 4; panel.add(newProductCategoryDropdown, gbc); 
  
-        gbc.gridx = 1; gbc.gridy = 5; gbc.anchor = GridBagConstraints.EAST;
+        gbc.gridx = 0; gbc.gridy = 5; panel.add(statusLabel, gbc); 
+        gbc.gridx = 1; gbc.gridy = 5; panel.add(newProductStatusDropdown, gbc); 
+        
+        gbc.gridx = 1; gbc.gridy = 6; gbc.anchor = GridBagConstraints.EAST;
         panel.add(addProductButton, gbc);
         
         return panel;
@@ -682,6 +704,9 @@ public class AdminView extends JFrame {
     public String getCategoryDropdown(){
         return (String) categoryDropdown.getSelectedItem();
     }
+    public String getStatusDropdown(){
+        return (String) statusDropdown.getSelectedItem();
+    }
     public String getOrderIdField() {
     	return orderIdField.getText();
     }
@@ -704,6 +729,9 @@ public class AdminView extends JFrame {
 	}
 	public String getNewProductCategoryDropdown() {
 		return (String) newProductCategoryDropdown.getSelectedItem();
+	}
+	public String getNewProductStatusDropdown() {
+		return (String) newProductStatusDropdown.getSelectedItem();
 	}
 	public void setAddProductAction(ActionListener listener) {
     	addProductButton.addActionListener(listener);

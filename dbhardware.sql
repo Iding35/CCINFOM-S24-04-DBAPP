@@ -95,22 +95,22 @@ CREATE TABLE Products (
     price DECIMAL(10,2) NOT NULL,
     quantity INT NOT NULL,
     category ENUM('CPU','GPU','Motherboard','Memory (RAM)', 'Storage Device'),
-    CONSTRAINT product_name_unique UNIQUE (name)
+    status ENUM('Active', 'Inactive')
 ) AUTO_INCREMENT = 1001;
 
-INSERT INTO Products (name, description, brand, price, quantity, category)
+INSERT INTO Products (name, description, brand, price, quantity, category, status)
 VALUES
-	('ASROCK B450M-HDV R4.0 MATX Motherboard', 'Supports AMD AM4 Socket Ryzen™ 2000, 3000, 4000 G-Series, 5000 and 5000 G-Series Desktop Processors', 'ASRock', 3150.00, 40, 'Motherboard'),
-    ('AMD Ryzen 5 5600X', '6-Core 12-Thread Unlocked Desktop Processor, up to 4.6GHz Max Boost', 'AMD', 11750.00, 25, 'CPU'),
-	('Intel Core i7-12700K', '12-Core Processor (8P+4E), up to 5.0GHz with Intel UHD Graphics 770', 'Intel', 17500.00, 30, 'CPU'),
-	('MSI B550M PRO-VDH WIFI Motherboard', 'AMD AM4, DDR4, WiFi, Bluetooth, and PCIe 4.0 ready', 'MSI', 5500.00, 20, 'Motherboard'),
-	('Gigabyte AORUS GeForce RTX 3060 Elite 12G', '12GB GDDR6, RGB Fusion 2.0, Windforce 3X Cooling System', 'Gigabyte', 24999.00, 15, 'GPU'),
-	('ASUS Dual GeForce RTX 4070 12GB', '12GB GDDR6X, Axial-tech Fans, Dual BIOS', 'ASUS', 39999.00, 10, 'GPU'),
-	('Corsair Vengeance LPX 16GB (2x8GB) DDR4 3200MHz', 'High-performance memory optimized for AMD and Intel', 'Corsair', 2899.00, 50, 'Memory (RAM)'),
-	('G.SKILL Trident Z RGB 32GB (2x16GB) DDR4 3600MHz', 'RGB lighting and high performance', 'G.SKILL', 5899.00, 35, 'Memory (RAM)'),
-	('Samsung 970 EVO Plus 1TB NVMe SSD', 'Up to 3500MB/s read speed, V-NAND technology', 'Samsung', 5999.00, 60, 'Storage Device'),
-	('Seagate Barracuda 2TB HDD', '7200RPM SATA 6Gb/s 256MB cache, 3.5-inch internal drive', 'Seagate', 3250.00, 80, 'Storage Device'),
-	('Crucial P5 Plus 2TB PCIe Gen4 NVMe SSD', 'Read speeds up to 6600MB/s, ideal for gaming and productivity', 'Crucial', 8999.00, 40, 'Storage Device');
+	('ASROCK B450M-HDV R4.0 MATX Motherboard', 'Supports AMD AM4 Socket Ryzen™ 2000, 3000, 4000 G-Series, 5000 and 5000 G-Series Desktop Processors', 'ASRock', 3150.00, 40, 'Motherboard', 'Active'),
+    ('AMD Ryzen 5 5600X', '6-Core 12-Thread Unlocked Desktop Processor, up to 4.6GHz Max Boost', 'AMD', 11750.00, 25, 'CPU', 'Active'),
+	('Intel Core i7-12700K', '12-Core Processor (8P+4E), up to 5.0GHz with Intel UHD Graphics 770', 'Intel', 17500.00, 30, 'CPU', 'Active'),
+	('MSI B550M PRO-VDH WIFI Motherboard', 'AMD AM4, DDR4, WiFi, Bluetooth, and PCIe 4.0 ready', 'MSI', 5500.00, 20, 'Motherboard', 'Active'),
+	('Gigabyte AORUS GeForce RTX 3060 Elite 12G', '12GB GDDR6, RGB Fusion 2.0, Windforce 3X Cooling System', 'Gigabyte', 24999.00, 15, 'GPU', 'Active'),
+	('ASUS Dual GeForce RTX 4070 12GB', '12GB GDDR6X, Axial-tech Fans, Dual BIOS', 'ASUS', 39999.00, 10, 'GPU', 'Active'),
+	('Corsair Vengeance LPX 16GB (2x8GB) DDR4 3200MHz', 'High-performance memory optimized for AMD and Intel', 'Corsair', 2899.00, 50, 'Memory (RAM)', 'Active'),
+	('G.SKILL Trident Z RGB 32GB (2x16GB) DDR4 3600MHz', 'RGB lighting and high performance', 'G.SKILL', 5899.00, 35, 'Memory (RAM)', 'Active'),
+	('Samsung 970 EVO Plus 1TB NVMe SSD', 'Up to 3500MB/s read speed, V-NAND technology', 'Samsung', 5999.00, 60, 'Storage Device', 'Active'),
+	('Seagate Barracuda 2TB HDD', '7200RPM SATA 6Gb/s 256MB cache, 3.5-inch internal drive', 'Seagate', 3250.00, 80, 'Storage Device', 'Active'),
+	('Crucial P5 Plus 2TB PCIe Gen4 NVMe SSD', 'Read speeds up to 6600MB/s, ideal for gaming and productivity', 'Crucial', 8999.00, 40, 'Storage Device', 'Active');
 
 CREATE TABLE Supplier_Shipment(
 	supplier_shipment_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,

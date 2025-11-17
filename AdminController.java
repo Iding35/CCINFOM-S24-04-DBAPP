@@ -126,16 +126,13 @@ public class AdminController {
     	}
     }
     
-    
-    
     private void handleNewProduct(){
-    	System.out.println("Add product button");
     	String name = view.getProductNameField();
     	String description = view.getProductDescriptionField();
     	String brand = view.getProductBrandField();
-    	//Float price = view.getProductPriceField();
     	String category = view.getNewProductCategoryDropdown();
-    	
+    	String status = view.getNewProductStatusDropdown();
+    
     	Float price = null;
         try {
             price = view.getProductPriceField(); 
@@ -145,12 +142,12 @@ public class AdminController {
         }
         
     	if(name.isEmpty() || description.isEmpty() || brand.isEmpty() ||
-    			price == null || category.isEmpty()) {
+    			price == null || category.isEmpty() || status.isEmpty()) {
     		JOptionPane.showMessageDialog(view, "Please fill in all fields.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
     	}
     	
-    	if (model.createNewProduct(name, description, brand, price, category)) {
+    	if (model.createNewProduct(name, description, brand, price, category, status)) {
 		    JOptionPane.showMessageDialog(view, "New product added successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
 		} else {
 		    JOptionPane.showMessageDialog(view, "Product creation failed. Check required values.", "Error", JOptionPane.ERROR_MESSAGE);
@@ -165,7 +162,11 @@ public class AdminController {
         
         if ("category".equals(field)) {
             newValue = (String) view.getCategoryDropdown();
-        } else {
+        } 
+        else if ("status".equals(field)) {
+        	newValue = (String) view.getStatusDropdown();
+        }
+        else {
             newValue = view.getUpdateProductValueField();
         }
         
@@ -220,7 +221,7 @@ public class AdminController {
             return;
     	}
     	
-    	if(!model.checkValidVehicle(vehicleID)) {
+    	if(!model.checkValidVehicle(vehicleID))  {
     		JOptionPane.showMessageDialog(view, "Vehicle ID provided is invalid or occupied.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
     	}

@@ -204,3 +204,16 @@ CREATE TABLE Returns (
     CONSTRAINT returns_fk_order_details FOREIGN KEY (order_detail_id) REFERENCES Order_Details(order_detail_id)
 ) AUTO_INCREMENT = 9000;
 
+-- VIEWS --
+CREATE VIEW admin_product AS
+SELECT product_id AS id, name, description, brand, FORMAT(price, 2) AS price, quantity, category
+FROM Products
+ORDER BY product_id;
+    
+CREATE VIEW admin_supplier_shipment AS
+SELECT ss.supplier_shipment_id AS id, ss.product_id, ss.supplier_id, di.vehicle_id, FORMAT(ss.product_cost, 2) AS price, ss.quantity, di.shipping_datetime, di.arrival_datetime, di.status
+FROM Supplier_Shipment ss
+JOIN Delivery_Info di
+	ON di.delivery_id = ss.delivery_id
+ORDER BY di.status, di.shipping_datetime DESC, di.arrival_datetime DESC;
+

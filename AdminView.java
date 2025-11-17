@@ -1,5 +1,8 @@
 import java.awt.*;
 import java.awt.event.ActionListener;
+import java.time.LocalDate;
+import java.util.stream.IntStream;
+
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableModel;
@@ -7,33 +10,64 @@ import javax.swing.table.DefaultTableModel;
 public class AdminView extends JFrame {
     
     private final int PANEL_WIDTH = 1350;
-    private final int PANEL_HEIGHT = 600; 
+    private final int PANEL_HEIGHT = 700; 
     
+    //navigation buttons
+    private JButton viewProductsButton;
+    private JButton viewSuppliersButton;
+    private JButton viewVehiclesButton;
+    private JButton viewOrdersButton;
+    private JButton viewSupplierShipmentButton;
+    private JButton viewReportsButton;
+    
+    //update product
     private JTextField productIdField;
     private JComboBox<String> updateProductFieldDropdown;
     private JTextField updateProductValueField;
     private JComboBox<String> categoryDropdown;
     private JButton updateProductButton;
-
+    
+    //add new product
+    private JTextField productNameField;
+    private JTextField productDescriptionField;
+    private JTextField productBrandField;
+    private JTextField productPriceField;
+    private JComboBox<String> newProductCategoryDropdown;
+    private JButton addProductButton;
+    
+    //add new supplier
+    
+    //add new vehicle
+    
+    //update order status
     private JTextField orderIdField;
     private JComboBox<String> newStatusOptions;
     private JButton updateStatusButton;
     
-    //nav buttons
-    private JButton viewProductsButton;
-    private JButton viewOrdersButton;
-    private JButton restockButton;
-    private JButton addProductsButton;
-    private JButton addSuppliersButton;
-    
+    //restock product
     private JTextField restockProductIdField;
     private JTextField restockSupplierIdField;
+    private JTextField restockVehicleIdField;
     private JTextField restockQuantityField;
     private JTextField restockCostField;
-    private JTextField restockOrderDateField;
-    private JTextField restockArrivalDateField;
-    private JButton recordRestockButton;
+    private JButton shipButton;    
     
+    //update restock arrival
+    private JTextField restockSupplierShipmentIdField;
+    private JButton updateArrivalButton;
+    
+    //REPORTS
+    //reports - sales
+    private JComboBox<String> salesMonth;
+    private JComboBox<String> salesYear;
+    private JLabel monthResult;
+    private JLabel yearResult;
+    private JLabel totalRevenueResult;
+    private JLabel totalOrderResult;
+    private JButton salesReportButton;
+    
+    
+    //panels
     private JPanel centerPanel;
     private JPanel eastPanel;
    
@@ -70,14 +104,36 @@ public class AdminView extends JFrame {
         
         viewProductsButton = new JButton("View Products");
         viewOrdersButton = new JButton("View Orders");
+        viewSuppliersButton = new JButton("View Suppliers");
+        viewVehiclesButton = new JButton("View Vehicles");
+        viewSupplierShipmentButton = new JButton("View Supplier Shipments");
+        viewReportsButton = new JButton("Sales Report");
+        
         viewProductsButton.setBackground(Color.decode("#ADD1DB"));
         viewOrdersButton.setBackground(Color.decode("#ADD1DB"));
-        restockButton = new JButton("Restock Products");
-        restockButton.setBackground(Color.decode("#ADDBD1"));
+        viewSuppliersButton.setBackground(Color.decode("#ADD1DB"));
+        viewVehiclesButton.setBackground(Color.decode("#ADD1DB"));
+        viewSupplierShipmentButton.setBackground(Color.decode("#ADD1DB"));
+        viewReportsButton.setBackground(Color.decode("#ADD1DB"));
         
+        
+        //FOR SALES REPORT
+        this.monthResult = new JLabel("N/A");
+        this.yearResult = new JLabel("N/A");
+        this.totalRevenueResult = new JLabel("N/A");
+        this.totalOrderResult = new JLabel("N/A");
+        
+        this.monthResult.setForeground(Color.WHITE);
+        this.yearResult.setForeground(Color.WHITE);
+        this.totalRevenueResult.setForeground(Color.WHITE);
+        this.totalOrderResult.setForeground(Color.WHITE);
+        ;
         navPanel.add(viewProductsButton);
+        navPanel.add(viewSuppliersButton);
+        navPanel.add(viewVehiclesButton);
         navPanel.add(viewOrdersButton);
-        navPanel.add(restockButton);
+        navPanel.add(viewSupplierShipmentButton);
+        navPanel.add(viewReportsButton);
         
         northPanel.add(navPanel, BorderLayout.SOUTH);
         
@@ -88,7 +144,17 @@ public class AdminView extends JFrame {
         eastPanel.setLayout(new BoxLayout(eastPanel, BoxLayout.Y_AXIS));
         eastPanel.setBackground(Color.DARK_GRAY);
         eastPanel.setPreferredSize(new Dimension(400, 0)); 
-
+        
+        //buttons for eastPanel
+        updateProductButton = new JButton("Update Product");
+        addProductButton = new JButton("Add Product");
+        //addSupplierButton = new JButton("Add Supplier");
+        //addVehicleButton = new JButton("Add Vehicle");
+        updateStatusButton = new JButton("Update Status");
+        shipButton = new JButton("Ship Products");
+        updateArrivalButton = new JButton("Arrived");
+        salesReportButton = new JButton("Report");
+        
         this.add(eastPanel, BorderLayout.EAST);
         
         
@@ -113,26 +179,164 @@ public class AdminView extends JFrame {
 
     }
     
-    private JPanel createUpdatePanel() {
+    public void setReportData(String reportType) {
+
+    	centerPanel.removeAll();
+    	centerPanel.setBackground(Color.GRAY);
+    	
+    	JPanel contentPanel = null;
+    	contentPanel = createSalesReportResultPanel();
+    	
+    	if("SALES".equals(reportType)) {
+    		contentPanel = createSalesReportResultPanel();
+//    	}
+//    	else if ("REFUNDS".equals(reportType)) {
+//    		contentPanel = //addPanel()
+//    	}
+//    	else if ("INVENTORY".equals(reportType)) {
+//    		contentPanel = //addPanel()
+//    	}
+//    	else if ("TOP5".equals(reportType)) {
+//    		contentPanel = //addPanel()
+    	}
+
+    	
+    	if(contentPanel != null) {
+    		centerPanel.add(contentPanel, BorderLayout.CENTER);
+    	}
+    	
+    	
+    	refreshFrame();
+
+    }
+    
+    public JPanel createProductPanel() {
     	JPanel panel = new JPanel();
     	panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
     	panel.setBackground(Color.DARK_GRAY);
+    	panel.add(createNewProductPanel());
     	panel.add(createProductUpdatePanel());
+    	panel.add(Box.createVerticalGlue());
+    	
+    	return panel;
+    }
+    
+    public JPanel createSupplierPanel() {
+    	JPanel panel = new JPanel();
+    	panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+    	panel.setBackground(Color.DARK_GRAY);
+    	//panel.add(createNewSupplierPanel());
+    	//panel.add(createUSupplierUpdatePanel());
+    	panel.add(Box.createVerticalGlue());
+    	return panel;
+    }
+    
+    public JPanel createVehiclePanel() {
+    	JPanel panel = new JPanel();
+    	panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+    	panel.setBackground(Color.DARK_GRAY);
+    	//panel.add(createNewVehiclePanel());
+    	//panel.add(createVehicleUpdatePanel());
+    	panel.add(Box.createVerticalGlue());
+    	return panel;
+    }
+    
+    public JPanel createOrderPanel() {
+    	JPanel panel = new JPanel();
+    	panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+    	panel.setBackground(Color.DARK_GRAY);
     	panel.add(createOrderStatusPanel());
     	panel.add(Box.createVerticalGlue());
     	
     	return panel;
     }
     
+    public JPanel createRestockPanel() {
+    	JPanel panel = new JPanel();
+    	panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+    	panel.setBackground(Color.DARK_GRAY);
+    	panel.add(createNewRestockPanel());
+    	panel.add(createUpdateArrivalRestockPanel());
+    	panel.add(Box.createVerticalGlue());
+    	
+    	return panel;
+    }
+    
+    public JPanel createReportPanel() {
+    	JPanel panel = new JPanel();
+    	panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+    	panel.setBackground(Color.DARK_GRAY);
+    	panel.add(createSalesReportPanel());
+    	panel.add(Box.createVerticalGlue());
+    	
+    	return panel;
+    }
+    
+    public JPanel createSalesReportResultPanel() {
+    	JPanel panel = new JPanel(new GridBagLayout());
+    	panel.setBackground(Color.DARK_GRAY);
+    	
+    	GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        
+        JLabel headerLabel = new JLabel("SALES REPORT");
+        headerLabel.setFont(new Font("Veranda", Font.BOLD, 20));
+        headerLabel.setForeground(Color.WHITE);
+        
+        JLabel monthLabel = new JLabel("Month:");
+        JLabel yearLabel = new JLabel("Year:");
+        JLabel revenueLabel = new JLabel("Revenue:");
+        JLabel totalOrdersLabel = new JLabel("Total Orders:");
+        
+        monthLabel.setForeground(Color.WHITE);
+        yearLabel.setForeground(Color.WHITE);
+        revenueLabel.setForeground(Color.WHITE);
+        totalOrdersLabel.setForeground(Color.WHITE);
+        
+        gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 2; panel.add(headerLabel, gbc);
+        
+        gbc.gridwidth = 1; 
+        gbc.gridx = 0; gbc.gridy = 1; panel.add(monthLabel, gbc);
+        gbc.gridx = 1; gbc.gridy = 1; panel.add(monthResult, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 2; panel.add(yearLabel, gbc);
+        gbc.gridx = 1; gbc.gridy = 2; panel.add(yearResult, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 3; panel.add(revenueLabel, gbc);
+        gbc.gridx = 1; gbc.gridy = 3; panel.add(totalRevenueResult, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 4; panel.add(totalOrdersLabel, gbc);
+        gbc.gridx = 1; gbc.gridy = 4; panel.add(totalOrderResult, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 5; gbc.gridwidth = 2; panel.add(Box.createVerticalStrut(10), gbc);
+        
+        return panel;
+    	
+    }
+    
     public void setEastPanelContent(String panelType) {
     	eastPanel.removeAll();
     	JPanel contentPanel = null;
+    	contentPanel = createProductPanel();
     	
-    	if("UPDATE".equals(panelType)) {
-    		contentPanel = createUpdatePanel();
+    	if("PRODUCT".equals(panelType)) {
+    		contentPanel = createProductPanel();
+    	}
+//    	else if ("SUPPLIER".equals(panelType)) {
+//    		contentPanel = createSupplierPanel();
+//    	}
+//    	else if ("VEHICLE".equals(panelType)) {
+//    		contentPanel = createVehiclePanel();
+//    	}
+    	else if ("ORDER".equals(panelType)) {
+    		contentPanel = createOrderPanel();
     	}
     	else if ("RESTOCK".equals(panelType)) {
     		contentPanel = createRestockPanel();
+    	}
+    	else if ("REPORT".equals(panelType)) {
+    		contentPanel = createReportPanel();
     	}
     	
     	if(contentPanel != null) {
@@ -142,83 +346,42 @@ public class AdminView extends JFrame {
     	refreshFrame();
     }
     
-    public JPanel createRestockPanel() {
-    	JPanel panel = new JPanel(new GridBagLayout());
+    private JPanel createEastPanel(String title) {
+        JPanel panel = new JPanel(new GridBagLayout());
         panel.setBorder(BorderFactory.createTitledBorder(
             BorderFactory.createLineBorder(Color.WHITE, 2), 
-            " Record New Shipment/Restock ", 
+            title, 
             TitledBorder.CENTER, TitledBorder.TOP, 
             new Font("Veranda", Font.BOLD, 16), Color.WHITE
         ));
         panel.setBackground(Color.GRAY.darker());
         
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 5, 5, 5);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-
-        restockProductIdField = new JTextField(15);
-        restockSupplierIdField = new JTextField(15);
-        restockQuantityField = new JTextField(15);
-        restockCostField = new JTextField(15);
-        restockOrderDateField = new JTextField(15);
-        restockArrivalDateField = new JTextField(15);
-        recordRestockButton = new JButton("Restock");
-
-        JLabel[] labels = {
-            new JLabel("Product ID:"), new JLabel("Supplier ID:"), new JLabel("Quantity:"),
-            new JLabel("Cost Price:"), new JLabel("Order Date (YYYY-MM-DD HH:MM:SS):"), 
-            new JLabel("Arrival Date (YYYY-MM-DD HH:MM:SS):")
-        };
-        
-        for (JLabel label : labels) {
-            label.setForeground(Color.WHITE);
-        }
-        recordRestockButton.setBackground(Color.decode("#ADD1DB"));
-
-        JTextField[] fields = {
-        		restockProductIdField, restockSupplierIdField, restockQuantityField,
-        		restockCostField, restockOrderDateField, restockArrivalDateField
-        };
-
-        // Layout (six rows for data)
-        for (int i = 0; i < labels.length; i++) {
-            gbc.gridx = 0; gbc.gridy = i; panel.add(labels[i], gbc);
-            gbc.gridx = 1; gbc.gridy = i; panel.add(fields[i], gbc);
-        }
-
-        // Button Row
-        gbc.gridx = 1; gbc.gridy = labels.length; gbc.anchor = GridBagConstraints.EAST;
-        panel.add(recordRestockButton, gbc);
-        
         return panel;
     }
     
+    
+   
+   private JComboBox<String> createCategoryDropdown() {
+       String[] categories = {
+           "CPU", "GPU", "Motherboard", "Memory (RAM)", "Storage Device"
+       };
+       return new JComboBox<>(categories);
+   }
+
     private JPanel createProductUpdatePanel() {
     	
         productIdField = new JTextField(15);
         updateProductValueField = new JTextField(15);
-        updateProductButton = new JButton("Update Product");
         
         String[] updatableFields = {
             "name", "description", "brand", "price", "quantity", "category"
         };
         updateProductFieldDropdown = new JComboBox<>(updatableFields);
         
-        String[] categories = {
-        	"CPU", "GPU", "Motherboard", "Memory (RAM)", "Storage Device"
-        };
-        categoryDropdown = new JComboBox<>(categories);
+        categoryDropdown = createCategoryDropdown();
         categoryDropdown.setVisible(false);
         
-        
-        JPanel panel = new JPanel(new GridBagLayout());
-        
-        panel.setBorder(BorderFactory.createTitledBorder(
-            BorderFactory.createLineBorder(Color.WHITE, 2), 
-            " Product Details Update ", TitledBorder.CENTER, TitledBorder.TOP, 
-            new Font("Veranda", Font.BOLD, 16), Color.WHITE
-        ));
-        panel.setBackground(Color.GRAY.darker());
+        JPanel panel = createEastPanel(" Product Details Update ");
         
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(10, 10, 10, 10);
@@ -233,7 +396,6 @@ public class AdminView extends JFrame {
         fieldLabel.setForeground(Color.WHITE);
         valueLabel.setForeground(Color.WHITE);
         updateProductButton.setBackground(Color.decode("#ADD1DB"));
-
 
         // Row 1: Product ID
         gbc.gridx = 0; gbc.gridy = 0; panel.add(idLabel, gbc);
@@ -273,22 +435,67 @@ public class AdminView extends JFrame {
         
         return panel;
    }
+    
+    private JPanel createNewProductPanel() {
+        
+        productNameField = new JTextField(15);
+        productDescriptionField = new JTextField(15);
+        productBrandField = new JTextField(15);
+        productPriceField = new JTextField(15);
+        newProductCategoryDropdown = createCategoryDropdown();        
+        
+        JPanel panel = createEastPanel(" Add New Product ");
+        
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        JLabel nameLabel = new JLabel("Name:");
+        JLabel descriptionLabel = new JLabel("Description:");
+        JLabel brandLabel = new JLabel("Brand:");
+        JLabel priceLabel = new JLabel("Price:");
+        JLabel categoryLabel = new JLabel("Category:");
+
+        nameLabel.setForeground(Color.WHITE);
+        descriptionLabel.setForeground(Color.WHITE);
+        brandLabel.setForeground(Color.WHITE);
+        priceLabel.setForeground(Color.WHITE);
+        categoryLabel.setForeground(Color.WHITE);
+        addProductButton.setBackground(Color.decode("#ADD1DB"));
+
+
+        gbc.gridx = 0; gbc.gridy = 0; panel.add(nameLabel, gbc);
+        gbc.gridx = 1; gbc.gridy = 0; panel.add(productNameField, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 1; panel.add(descriptionLabel, gbc);
+        gbc.gridx = 1; gbc.gridy = 1; panel.add(productDescriptionField, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 2; panel.add(brandLabel, gbc);
+        gbc.gridx = 1; gbc.gridy = 2; panel.add(productBrandField, gbc);
+        
+        gbc.gridx = 0; gbc.gridy = 3; panel.add(priceLabel, gbc);
+        gbc.gridx = 1; gbc.gridy = 3; panel.add(productPriceField, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 4; panel.add(categoryLabel, gbc); 
+        gbc.gridx = 1; gbc.gridy = 4; panel.add(newProductCategoryDropdown, gbc); 
+ 
+        gbc.gridx = 1; gbc.gridy = 5; gbc.anchor = GridBagConstraints.EAST;
+        panel.add(addProductButton, gbc);
+        
+        return panel;
+    }
+    
+   
+    /*private JPanel createNewSupplierPanel()*/
+    
+    /*private JPanel createNewVehiclePanel()*/
 
     private JPanel createOrderStatusPanel() {
         orderIdField = new JTextField(15);
         String[] statuses = {"Pending", "Shipping", "Completed", "Returned"};
         newStatusOptions = new JComboBox<>(statuses); 
-        updateStatusButton = new JButton("Update Status");
-        
-        
-        JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBorder(BorderFactory.createTitledBorder(
-            BorderFactory.createLineBorder(Color.WHITE, 2), 
-            " Order Status Update ", 
-            TitledBorder.CENTER, TitledBorder.TOP, 
-            new Font("Veranda", Font.BOLD, 16), Color.WHITE
-        ));
-        panel.setBackground(Color.GRAY.darker());
+                
+        JPanel panel = createEastPanel(" Update Order Status ");
         
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(10, 10, 10, 10);
@@ -316,42 +523,153 @@ public class AdminView extends JFrame {
         return panel;
     }
     
+    public JPanel createNewRestockPanel() {
+    	JPanel panel = createEastPanel(" Record New Shipment/Restock ");
+        
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        restockProductIdField = new JTextField(15);
+        restockSupplierIdField = new JTextField(15);
+        restockVehicleIdField = new JTextField(15);
+        restockQuantityField = new JTextField(15);
+        restockCostField = new JTextField(15);
+
+        JLabel productIDLabel = new JLabel("Product ID:");
+        JLabel supplierIDLabel = new JLabel("Supplier ID:");
+        JLabel vehicleIDLabel = new JLabel("Vehicle ID:");
+        JLabel quantityLabel = new JLabel("Quantity:");
+        JLabel costPriceLabel = new JLabel("Cost Price:");
+        
+        productIDLabel.setForeground(Color.WHITE);
+        supplierIDLabel.setForeground(Color.WHITE);
+        vehicleIDLabel.setForeground(Color.WHITE);
+        quantityLabel.setForeground(Color.WHITE);
+        costPriceLabel.setForeground(Color.WHITE);
+        
+        shipButton.setBackground(Color.decode("#ADD1DB"));
+        
+        gbc.gridx = 0; gbc.gridy = 0; panel.add(productIDLabel, gbc);
+        gbc.gridx = 1; gbc.gridy = 0; panel.add(restockProductIdField, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 1; panel.add(supplierIDLabel, gbc);
+        gbc.gridx = 1; gbc.gridy = 1; panel.add(restockSupplierIdField, gbc);
+        
+        gbc.gridx = 0; gbc.gridy = 2; panel.add(vehicleIDLabel, gbc);
+        gbc.gridx = 1; gbc.gridy = 2; panel.add(restockVehicleIdField, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 3; panel.add(quantityLabel, gbc);
+        gbc.gridx = 1; gbc.gridy = 3; panel.add(restockQuantityField, gbc);
+       
+        gbc.gridx = 0; gbc.gridy = 4; panel.add(costPriceLabel, gbc);
+        gbc.gridx = 1; gbc.gridy = 4; panel.add(restockCostField, gbc);
+
+        gbc.gridx = 1; gbc.gridy = 5; gbc.anchor = GridBagConstraints.EAST;
+        panel.add(shipButton, gbc);
+        
+        return panel;
+    }
     
-    // Action Listeners
-    public void setProductUpdateAction(ActionListener listener) {
-    	updateProductButton.addActionListener(listener);
+    public JPanel createUpdateArrivalRestockPanel() {
+    	
+    	restockSupplierShipmentIdField = new JTextField(15);
+		//restockArrivalDateField = new JTextField(15);
+		
+    	JPanel panel = createEastPanel(" Update Supplier Shipment Arrival Date ");
+        
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+		JLabel idLabel = new JLabel("Supplier Shipment ID:");
+		idLabel.setForeground(Color.WHITE);
+		updateArrivalButton.setBackground(Color.decode("#ADD1DB"));
+		
+		gbc.gridx = 0; gbc.gridy = 0; panel.add(idLabel, gbc);
+        gbc.gridx = 1; gbc.gridy = 0; panel.add(restockSupplierShipmentIdField, gbc);
+		
+        gbc.gridx = 1; gbc.gridy = 1; gbc.anchor = GridBagConstraints.EAST;
+        panel.add(updateArrivalButton, gbc);
+        
+        return panel;
     }
-    public void setUpdateStatusAction(ActionListener listener) {
-        if (updateStatusButton != null) updateStatusButton.addActionListener(listener);
+    
+  //FOR REPORT
+    private JComboBox<String> createMonthDropdown() {
+
+    	String[] months = IntStream.rangeClosed(1, 12)
+    			.mapToObj(i -> String.format("%02d", i)) //para nakaformat mga single valued num into 01, 02,...
+    			.toArray(String[]::new);
+        return new JComboBox<>(months);
     }
+    
+    private JComboBox<String> createYearDropdown() {
+    	int currentYear = LocalDate.now().getYear();
+        String[] years = IntStream.rangeClosed(2000, currentYear)
+                                 .mapToObj(String::valueOf)
+                                 .toArray(String[]::new);
+        return new JComboBox<>(years);
+    }
+    
+    
+    
+   private JPanel createSalesReportPanel() {
+	   
+	   salesMonth = createMonthDropdown();
+	   salesYear = createYearDropdown();
+	   
+	   JPanel panel = createEastPanel(" JHardware Reports ");
+	   
+	   GridBagConstraints gbc = new GridBagConstraints();
+       gbc.insets = new Insets(10, 10, 10, 10);
+       gbc.fill = GridBagConstraints.HORIZONTAL;
+       
+       JLabel salesHeader = new JLabel("SALES REPORT");
+       JLabel monthLabel = new JLabel("Month:");
+       JLabel yearLabel = new JLabel("Year:");
+       
+       salesHeader.setForeground(Color.WHITE);
+       monthLabel.setForeground(Color.WHITE);
+       yearLabel.setForeground(Color.WHITE);
+       salesReportButton.setBackground(Color.decode("#ADD1DB"));
+       
+       gbc.gridx = 0; gbc.gridy = 0; panel.add(salesHeader, gbc);
+       
+       gbc.gridx = 0; gbc.gridy = 1; panel.add(monthLabel, gbc);
+       gbc.gridx = 1; gbc.gridy = 1; panel.add(salesMonth, gbc);
+       
+       gbc.gridx = 0; gbc.gridy = 2; panel.add(yearLabel, gbc);
+       gbc.gridx = 1; gbc.gridy = 2; panel.add(salesYear, gbc);
+       
+       gbc.gridx = 0; gbc.gridy = 3; panel.add(salesReportButton, gbc);
+       
+       return panel;
+       
+   }
+    
+    // Action Listeners 
+    //nav bar action listener
     public void setViewProductsAction(ActionListener listener) {
         if (viewProductsButton != null) viewProductsButton.addActionListener(listener);
+    }
+    public void setViewSuppliersAction(ActionListener listener) {
+    	if (viewSuppliersButton != null) viewSuppliersButton.addActionListener(listener);
     }
     public void setViewOrdersAction(ActionListener listener) {
         if (viewOrdersButton != null) viewOrdersButton.addActionListener(listener);
     }
-    public void setRestockAction(ActionListener listener) {
-        if (restockButton != null) restockButton.addActionListener(listener);
+    public void setViewSupplierShipmentkAction(ActionListener listener) {
+        if (viewSupplierShipmentButton != null) viewSupplierShipmentButton.addActionListener(listener);
     }
-    public void setRecordRestockAction(ActionListener listener) {
-    	recordRestockButton.addActionListener(listener);
+    public void setViewVehiclesAction(ActionListener listener) {
+    	if (viewVehiclesButton != null) viewVehiclesButton.addActionListener(listener);
+    }
+    public void setViewReportsAction(ActionListener listener) {
+        if (viewReportsButton != null) viewReportsButton.addActionListener(listener);
     }
     
-    public String getRestockProductId() {
-    	return restockProductIdField.getText();
-    }
-    public String getRestockSupplierId() {
-    	return restockSupplierIdField.getText();
-    }
-    public String getRestockQuantity() {
-    	return restockQuantityField.getText();
-    }
-    public String getRestockOrderDate() {
-    	return restockOrderDateField.getText();
-    }
-    public String getRestockArrivalDate() {
-    	return restockArrivalDateField.getText();
-    }
+    //update product action listner
     public String getProductIdField() {
     	return productIdField.getText();
     }
@@ -367,8 +685,93 @@ public class AdminView extends JFrame {
     public String getOrderIdField() {
     	return orderIdField.getText();
     }
-    public String getNewStatus() { return (String) newStatusOptions.getSelectedItem(); }
-    public void resetTextField() {
-    	
+    public void setProductUpdateAction(ActionListener listener) {
+    	updateProductButton.addActionListener(listener);
     }
+    
+    //add new product action listener
+    public String getProductNameField() {
+		return productNameField.getText();
+	}
+	public String getProductDescriptionField() {
+		return productDescriptionField.getText();
+	}
+	public String getProductBrandField() {
+		return productBrandField.getText();
+	}
+	public float getProductPriceField() {
+		return Float.parseFloat(productPriceField.getText());
+	}
+	public String getNewProductCategoryDropdown() {
+		return (String) newProductCategoryDropdown.getSelectedItem();
+	}
+	public void setAddProductAction(ActionListener listener) {
+    	addProductButton.addActionListener(listener);
+    }
+	
+	/*add new supplier action listener */
+	
+	/* add new vehicle action listener */
+	
+	//update order status action listner
+	public String getNewStatus() { return (String) newStatusOptions.getSelectedItem(); }
+	public void setUpdateStatusAction(ActionListener listener) {
+        if (updateStatusButton != null) updateStatusButton.addActionListener(listener);
+    }
+	
+	 
+    //restock action listener
+    public int getRestockProductId() {
+    	return Integer.parseInt(restockProductIdField.getText());
+    }
+    public int getRestockSupplierId() {
+    	return Integer.parseInt(restockSupplierIdField.getText());
+    }
+    public int getRestockVehicleId() {
+    	return Integer.parseInt(restockVehicleIdField.getText());
+    }
+    public int getRestockQuantity() {
+    	return Integer.parseInt(restockQuantityField.getText());
+    }
+    public int getRestockCost() {
+    	return Integer.parseInt(restockCostField.getText());
+    }
+    public void setShipAction(ActionListener listener) {
+    	shipButton.addActionListener(listener);
+    }
+    
+    //update restock action listener
+    public int getSupplierShipmentId() {
+    	return Integer.parseInt(restockSupplierShipmentIdField.getText());
+    }
+    public void setUpdateArrivalAction(ActionListener listener) {
+    	updateArrivalButton.addActionListener(listener);
+    }
+    
+    //reports sales aciton listener
+    public String getSalesMonth() {
+    	return (String) salesMonth.getSelectedItem();
+    }
+    public String getSalesYear() {
+    	return (String) salesYear.getSelectedItem();
+    }
+    public void setMonthResult(String month) {
+    	monthResult.setText(month);
+    }
+    public void setYearResult(String year) {
+    	yearResult.setText(year);
+    }
+    public void setTotalRevenueResult(String revenue) {
+    	totalRevenueResult.setText(revenue);
+    }
+    public void setTotalOrderResult(String order) {
+    	totalOrderResult.setText(order);
+    }
+    public void setSalesReportAction(ActionListener listener) {
+ 	  if (salesReportButton != null)salesReportButton.addActionListener(listener);
+ 		
+    }
+	
+    
+    
 }

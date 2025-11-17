@@ -35,7 +35,7 @@ public class AdminModel {
     }
     
     public DefaultTableModel getProductListing() throws SQLException {
-        String sql = "SELECT * FROM products ORDER BY product_id";
+        String sql = "SELECT * FROM admin_product";
         return getTableData(sql);
     }
     
@@ -55,20 +55,12 @@ public class AdminModel {
     }
     
     public DefaultTableModel getSupplierShipmentListing() throws SQLException {
-        String sql = "SELECT ss.supplier_shipment_id, ss.product_id, p.name AS product_name, ss.supplier_id, s.company_name, FORMAT(ss.product_cost, 2) AS product_cost, ss.quantity, d.shipping_datetime, d.arrival_datetime\r\n"
-        		+ "FROM supplier_shipment ss\r\n"
-        		+ "JOIN delivery_info d\r\n"
-        		+ "ON d.delivery_id = ss.delivery_id\r\n"
-        		+ "JOIN suppliers s\r\n"
-        		+ "ON s.supplier_id = ss.supplier_id\r\n"
-        		+ "JOIN products p\r\n"
-        		+ "ON p.product_id = ss.product_id\r\n"
-        		+ "ORDER BY arrival_datetime DESC;";
+        String sql = "SELECT * FROM admin_supplier_shipment";
         return getTableData(sql);
     }
  
     private boolean isValidFieldName(String field) {
-        return field.matches("name|description|brand|price|quantity|category");
+        return field.matches("name|description|brand|price|quantity|category|status");
     }
     
     public boolean updateProductDetail(int productId, String fieldName, String newValue) {
@@ -90,11 +82,11 @@ public class AdminModel {
     	}
     }
     
-    public boolean createNewProduct(String name, String description, String brand, float price, String category) {
+    public boolean createNewProduct(String name, String description, String brand, float price, String category, String status) {
     	
-    	String sql = "INSERT INTO Products (name, description, brand, price, quantity, category)\r\n"
+    	String sql = "INSERT INTO Products (name, description, brand, price, quantity, category, status)\r\n"
     			+ "VALUES"
-    			+ "(?, ?, ?, ?, 0, ?)";
+    			+ "(?, ?, ?, ?, 0, ?, ?)";
     	try(Connection conn = db.getConnection();
     		PreparedStatement stmt = conn.prepareStatement(sql)){
     		stmt.setString(1, name);
@@ -102,6 +94,7 @@ public class AdminModel {
     		stmt.setString(3, brand);
     		stmt.setFloat(4, price);
     		stmt.setString(5, category);
+    		stmt.setString(6, status);
     		
     		return stmt.executeUpdate() > 0;
     	}
@@ -150,6 +143,9 @@ public class AdminModel {
     			+ "VALUES"
     			+ "(?, ?, ?, ?, ?)";
     	
+    	String sqlUpdateVehicle = "UPDATE Vehicles\r\n"
+    			+ "SET status = 'Occupied'\r\n"
+    			+ "WHERE vehicle_id = ?";
     	
     	int deliveryInfoID = -1;
     	
@@ -202,6 +198,19 @@ public class AdminModel {
     			
     		}
     		
+    		//Update vehicle to occupied
+    		try(PreparedStatement stmtVehicle = conn.prepareStatement(sqlUpdateVehicle)){
+    			stmtVehicle.setInt(1, vehicleID);
+
+    			
+    			int affectedRows = stmtVehicle.executeUpdate();
+    			if(affectedRows == 0) {
+    				conn.rollback();
+    				System.err.println("Vehicle status update failed (0 rows affected).");
+    				return false;
+    			}
+    			
+    		}
     		conn.commit();
     		return true;
 
@@ -243,11 +252,12 @@ public class AdminModel {
     }
     
     public boolean restockArrivalUpdate(int supplierShipmentID, String arrivalDateTime) {
-    	
-    	String sqlSupplierShipment = "SELECT delivery_id, product_id, quantity \r\n"
-    			+ "FROM Supplier_Shipment \r\n"
+    	String sqlSupplierShipment = "SELECT ss.delivery_id, ss.product_id, ss.quantity, di.vehicle_id\r\n"
+    			+ "FROM Supplier_Shipment ss\r\n"
+    			+ "JOIN Delivery_Info di\r\n"
+    			+ "ON di.delivery_id = ss.delivery_id\r\n"
     			+ "WHERE supplier_shipment_id = ?";
-    	
+    	    	
     	String sqlDelivery = "UPDATE Delivery_Info \r\n"
     			+ "SET arrival_datetime = ?, status = 'Complete'\r\n"
     			+ "WHERE delivery_id = ?";
@@ -256,52 +266,58 @@ public class AdminModel {
     			+ "SET quantity = quantity + ? \r\n"
     			+ "WHERE product_id = ?";
     	
+    	String sqlUpdateVehicle = "UPDATE Vehicles\r\n"
+    			+ "SET status = 'Available'\r\n"
+    			+ "WHERE vehicle_id = ?";
+    	
     	int deliveryInfoID = -1;
     	int productID = -1;
     	int quantity = 0;
+    	int vehicleID = -1;
     	
     	try(Connection conn = db.getConnection()){
     		conn.setAutoCommit(false);
     		
-    		//insert address of supplier
-    		try(PreparedStatement stmtDelivery = conn.prepareStatement(sqlSupplierShipment)){
-    			stmtDelivery.setInt(1, supplierShipmentID);
+    		try(PreparedStatement stmtSupplier = conn.prepareStatement(sqlSupplierShipment)){
+                stmtSupplier.setInt(1, supplierShipmentID);
 
-    			//retrieve delivery_id
-        		try(ResultSet rs = stmtDelivery.executeQuery()){
+    			//retrieve delivery_id, product_id, quantitiy, and vehicle_id
+        		try(ResultSet rs = stmtSupplier.executeQuery()){
         			if(rs.next()) {
         				deliveryInfoID = rs.getInt("delivery_id");
         				productID = rs.getInt("product_id");
         				quantity = rs.getInt("quantity");
-        				
+        				vehicleID = rs.getInt("vehicle_id");
         			}
         			else {
         				conn.rollback();
-                        System.err.println("No shipment details found for supplier_shipment_id: " + supplierShipmentID);
-                        return false;
+        				System.err.println("Failed to retrieve shipment details for supplier_shipment_id: " + supplierShipmentID);
+        				return false;
         			}
         		}
+    			
     		}
     		
-    		//Update supplier_shipment arrive_dateteime
-    		try(PreparedStatement stmtSupplier = conn.prepareStatement(sqlDelivery)){
+    		//insert address of supplier
+    		try(PreparedStatement stmtDelivery = conn.prepareStatement(sqlDelivery)){
     			
-    			//convert the string into timestamp
+    			//convert the string into timestamp (ito ung datetime ng sql)
     			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
                 LocalDateTime ldt = LocalDateTime.parse(arrivalDateTime, formatter);
                 Timestamp timestamp = Timestamp.valueOf(ldt);
-                stmtSupplier.setTimestamp(1, timestamp);
-                stmtSupplier.setInt(2, deliveryInfoID);
                 
-    			int affectedRows = stmtSupplier.executeUpdate();
-    			if(affectedRows == 0) {
-    				conn.rollback();
-    				System.err.println("Arrival Date Time update failed (0 rows affected).");
-    				return false;
-    			}
-    			
+                stmtDelivery.setTimestamp(1, timestamp);
+                stmtDelivery.setInt(2, deliveryInfoID);
+
+                int affectedRows = stmtDelivery.executeUpdate(); 
+                
+                if(affectedRows == 0) {
+                    conn.rollback();
+                    System.err.println("Arrival Date Time update failed (0 rows affected).");
+                    return false;
+                }
     		}
-    		
+	
     		//Update product quantity 
     		try(PreparedStatement stmtProduct = conn.prepareStatement(sqlUpdateProductStocks)){
     			
@@ -317,6 +333,19 @@ public class AdminModel {
     			
     		}
     		
+    		//Update vehicle to occupied
+    		try(PreparedStatement stmtVehicle = conn.prepareStatement(sqlUpdateVehicle)){
+    			stmtVehicle.setInt(1, vehicleID);
+	
+    			int affectedRows = stmtVehicle.executeUpdate();
+    			if(affectedRows == 0) {
+    				conn.rollback();
+    				System.err.println("Vehicle status update failed (0 rows affected).");
+    				return false;
+    			}
+    			
+    		}
+    		
     		conn.commit();
     		return true;
 
@@ -324,6 +353,9 @@ public class AdminModel {
     	}catch(SQLException e) {
     		e.printStackTrace();
     		JOptionPane.showMessageDialog(null, "Database error: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+    	}catch(Exception e) {
+    		e.printStackTrace();
+    		JOptionPane.showMessageDialog(null, "Formatting or unexpected error: " + e.getMessage(), "Application Error", JOptionPane.ERROR_MESSAGE);
     	}
     	
     	return false;

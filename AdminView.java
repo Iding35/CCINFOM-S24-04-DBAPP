@@ -60,16 +60,13 @@ public class AdminView extends JFrame {
     
     //REPORTS
     //reports - sales
-    private JComboBox<String> reportTypeDropdown; 
     private JComboBox<String> salesMonth;
     private JComboBox<String> salesYear;
-    private JButton salesReportButton; 
-    
-    //reports - output labels 
     private JLabel monthResult;
     private JLabel yearResult;
     private JLabel totalRevenueResult;
     private JLabel totalOrderResult;
+    private JButton salesReportButton;
     
     
     //panels
@@ -185,20 +182,15 @@ public class AdminView extends JFrame {
     }
     
     public void setReportData(String reportType) {
-        centerPanel.removeAll();
-        centerPanel.setBackground(Color.GRAY);
-        
-        JPanel contentPanel = null;
-        
-        if("SALES".equals(reportType)) {
-            contentPanel = createSalesReportResultPanel();
-        }
-        
-        if(contentPanel != null) {
-            centerPanel.add(contentPanel, BorderLayout.CENTER);
-        }
-        refreshFrame();
-    }
+
+    	centerPanel.removeAll();
+    	centerPanel.setBackground(Color.GRAY);
+    	
+    	JPanel contentPanel = null;
+    	contentPanel = createSalesReportResultPanel();
+    	
+    	if("SALES".equals(reportType)) {
+    		contentPanel = createSalesReportResultPanel();
 //    	}
 //    	else if ("REFUNDS".equals(reportType)) {
 //    		contentPanel = //addPanel()
@@ -208,6 +200,17 @@ public class AdminView extends JFrame {
 //    	}
 //    	else if ("TOP5".equals(reportType)) {
 //    		contentPanel = //addPanel()
+    	}
+
+    	
+    	if(contentPanel != null) {
+    		centerPanel.add(contentPanel, BorderLayout.CENTER);
+    	}
+    	
+    	
+    	refreshFrame();
+
+    }
     
     public JPanel createProductPanel() {
     	JPanel panel = new JPanel();
@@ -262,24 +265,24 @@ public class AdminView extends JFrame {
     }
     
     public JPanel createReportPanel() {
-        JPanel panel = new JPanel();
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.setBackground(Color.DARK_GRAY);
-        panel.add(createReportInputPanel());
-        panel.add(Box.createVerticalGlue());
-        
-        return panel;
+    	JPanel panel = new JPanel();
+    	panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+    	panel.setBackground(Color.DARK_GRAY);
+    	panel.add(createSalesReportPanel());
+    	panel.add(Box.createVerticalGlue());
+    	
+    	return panel;
     }
     
     public JPanel createSalesReportResultPanel() {
-        JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBackground(Color.DARK_GRAY);
-        
-        GridBagConstraints gbc = new GridBagConstraints();
+    	JPanel panel = new JPanel(new GridBagLayout());
+    	panel.setBackground(Color.DARK_GRAY);
+    	
+    	GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(10, 10, 10, 10);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         
-        JLabel headerLabel = new JLabel("SALES REPORT SUMMARY");
+        JLabel headerLabel = new JLabel("SALES REPORT");
         headerLabel.setFont(new Font("Veranda", Font.BOLD, 20));
         headerLabel.setForeground(Color.WHITE);
         
@@ -311,6 +314,7 @@ public class AdminView extends JFrame {
         gbc.gridx = 0; gbc.gridy = 5; gbc.gridwidth = 2; panel.add(Box.createVerticalStrut(10), gbc);
         
         return panel;
+    	
     }
     
     public void setEastPanelContent(String panelType) {
@@ -632,68 +636,47 @@ public class AdminView extends JFrame {
     
     
     
-    private JPanel createReportInputPanel() {
-        
-        String[] reportTypes = {"Sales Report", "Product Refunds Report", "Inventory Tracking Report", "Top 5 Sellable Products"};
-        reportTypeDropdown = new JComboBox<>(reportTypes);
-        
-        salesMonth = createMonthDropdown();
-        salesYear = createYearDropdown();
-        
-        JPanel panel = createEastPanel(" Generate Reports ");
-        
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10, 10, 10, 10);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        
-        JLabel typeLabel = new JLabel("Report Type:");
-        JLabel monthLabel = new JLabel("Month:");
-        JLabel yearLabel = new JLabel("Year:");
-        
-        typeLabel.setForeground(Color.WHITE);
-        monthLabel.setForeground(Color.WHITE);
-        yearLabel.setForeground(Color.WHITE);
-        salesReportButton.setBackground(Color.decode("#ADD1DB"));
-        
-        // Row 0: Type
-        gbc.gridx = 0; gbc.gridy = 0; panel.add(typeLabel, gbc);
-        gbc.gridx = 1; gbc.gridy = 0; panel.add(reportTypeDropdown, gbc);
-        
-        // Row 1: Month
-        gbc.gridx = 0; gbc.gridy = 1; panel.add(monthLabel, gbc);
-        gbc.gridx = 1; gbc.gridy = 1; panel.add(salesMonth, gbc);
-        
-        // Row 2: Year
-        gbc.gridx = 0; gbc.gridy = 2; panel.add(yearLabel, gbc);
-        gbc.gridx = 1; gbc.gridy = 2; panel.add(salesYear, gbc);
-        
-        // Row 3: Button
-        gbc.gridx = 1; gbc.gridy = 3; gbc.anchor = GridBagConstraints.EAST;
-        panel.add(salesReportButton, gbc);
-        
-        // Logic to hide Month if "Top 5" is selected (Yearly report)
-        reportTypeDropdown.addActionListener(e -> {
-            String selected = (String) reportTypeDropdown.getSelectedItem();
-            if("Top 5 Sellable Products".equals(selected)) {
-                monthLabel.setVisible(false);
-                salesMonth.setVisible(false);
-            } else {
-                monthLabel.setVisible(true);
-                salesMonth.setVisible(true);
-            }
-        });
-        
-        return panel;
-        
-    }
+   private JPanel createSalesReportPanel() {
+	   
+	   salesMonth = createMonthDropdown();
+	   salesYear = createYearDropdown();
+	   
+	   JPanel panel = createEastPanel(" JHardware Reports ");
+	   
+	   GridBagConstraints gbc = new GridBagConstraints();
+       gbc.insets = new Insets(10, 10, 10, 10);
+       gbc.fill = GridBagConstraints.HORIZONTAL;
+       
+       JLabel salesHeader = new JLabel("SALES REPORT");
+       JLabel monthLabel = new JLabel("Month:");
+       JLabel yearLabel = new JLabel("Year:");
+       
+       salesHeader.setForeground(Color.WHITE);
+       monthLabel.setForeground(Color.WHITE);
+       yearLabel.setForeground(Color.WHITE);
+       salesReportButton.setBackground(Color.decode("#ADD1DB"));
+       
+       gbc.gridx = 0; gbc.gridy = 0; panel.add(salesHeader, gbc);
+       
+       gbc.gridx = 0; gbc.gridy = 1; panel.add(monthLabel, gbc);
+       gbc.gridx = 1; gbc.gridy = 1; panel.add(salesMonth, gbc);
+       
+       gbc.gridx = 0; gbc.gridy = 2; panel.add(yearLabel, gbc);
+       gbc.gridx = 1; gbc.gridy = 2; panel.add(salesYear, gbc);
+       
+       gbc.gridx = 0; gbc.gridy = 3; panel.add(salesReportButton, gbc);
+       
+       return panel;
+       
+   }
     
     // Action Listeners 
-    //nav bar action listener 
+    //nav bar action listener
     public void setViewProductsAction(ActionListener listener) {
         if (viewProductsButton != null) viewProductsButton.addActionListener(listener);
     }
     public void setViewSuppliersAction(ActionListener listener) {
-        if (viewSuppliersButton != null) viewSuppliersButton.addActionListener(listener);
+    	if (viewSuppliersButton != null) viewSuppliersButton.addActionListener(listener);
     }
     public void setViewOrdersAction(ActionListener listener) {
         if (viewOrdersButton != null) viewOrdersButton.addActionListener(listener);
@@ -702,54 +685,121 @@ public class AdminView extends JFrame {
         if (viewSupplierShipmentButton != null) viewSupplierShipmentButton.addActionListener(listener);
     }
     public void setViewVehiclesAction(ActionListener listener) {
-        if (viewVehiclesButton != null) viewVehiclesButton.addActionListener(listener);
+    	if (viewVehiclesButton != null) viewVehiclesButton.addActionListener(listener);
     }
     public void setViewReportsAction(ActionListener listener) {
         if (viewReportsButton != null) viewReportsButton.addActionListener(listener);
     }
     
-    public String getProductIdField() { return productIdField.getText(); }
-    public String getUpdateProductFieldDropdown() { return (String) updateProductFieldDropdown.getSelectedItem(); }
-    public String getUpdateProductValueField() { return updateProductValueField.getText(); }
-    public String getCategoryDropdown(){ return (String) categoryDropdown.getSelectedItem(); }
-    public String getStatusDropdown(){ return (String) statusDropdown.getSelectedItem(); }
-    public String getOrderIdField() { return orderIdField.getText(); }
-    public void setProductUpdateAction(ActionListener listener) { updateProductButton.addActionListener(listener); }
-    
-    public String getProductNameField() { return productNameField.getText(); }
-    public String getProductDescriptionField() { return productDescriptionField.getText(); }
-    public String getProductBrandField() { return productBrandField.getText(); }
-    public float getProductPriceField() { return Float.parseFloat(productPriceField.getText()); }
-    public String getNewProductCategoryDropdown() { return (String) newProductCategoryDropdown.getSelectedItem(); }
-    public String getNewProductStatusDropdown() { return (String) newProductStatusDropdown.getSelectedItem(); }
-    public void setAddProductAction(ActionListener listener) { addProductButton.addActionListener(listener); }
-    
-    public String getNewStatus() { return (String) newStatusOptions.getSelectedItem(); }
-    public void setUpdateStatusAction(ActionListener listener) { if (updateStatusButton != null) updateStatusButton.addActionListener(listener); }
-    
-    public int getRestockProductId() { return Integer.parseInt(restockProductIdField.getText()); }
-    public int getRestockSupplierId() { return Integer.parseInt(restockSupplierIdField.getText()); }
-    public int getRestockVehicleId() { return Integer.parseInt(restockVehicleIdField.getText()); }
-    public int getRestockQuantity() { return Integer.parseInt(restockQuantityField.getText()); }
-    public int getRestockCost() { return Integer.parseInt(restockCostField.getText()); }
-    public void setShipAction(ActionListener listener) { shipButton.addActionListener(listener); }
-    
-    public int getSupplierShipmentId() { return Integer.parseInt(restockSupplierShipmentIdField.getText()); }
-    public void setUpdateArrivalAction(ActionListener listener) { updateArrivalButton.addActionListener(listener); }
-    
-    // REPORTS INPUT GETTERS
-    public String getSelectedReportType() {
-        return (String) reportTypeDropdown.getSelectedItem();
+    //update product action listner
+    public String getProductIdField() {
+    	return productIdField.getText();
     }
-    public String getSalesMonth() { return (String) salesMonth.getSelectedItem(); }
-    public String getSalesYear() { return (String) salesYear.getSelectedItem(); }
+    public String getUpdateProductFieldDropdown() {
+    	return (String) updateProductFieldDropdown.getSelectedItem();
+    }
+    public String getUpdateProductValueField() {
+    	return updateProductValueField.getText();
+    }
+    public String getCategoryDropdown(){
+        return (String) categoryDropdown.getSelectedItem();
+    }
+    public String getStatusDropdown(){
+        return (String) statusDropdown.getSelectedItem();
+    }
+    public String getOrderIdField() {
+    	return orderIdField.getText();
+    }
+    public void setProductUpdateAction(ActionListener listener) {
+    	updateProductButton.addActionListener(listener);
+    }
     
-    public void setMonthResult(String month) { monthResult.setText(month); }
-    public void setYearResult(String year) { yearResult.setText(year); }
-    public void setTotalRevenueResult(String revenue) { totalRevenueResult.setText(revenue); }
-    public void setTotalOrderResult(String order) { totalOrderResult.setText(order); }
+    //add new product action listener
+    public String getProductNameField() {
+		return productNameField.getText();
+	}
+	public String getProductDescriptionField() {
+		return productDescriptionField.getText();
+	}
+	public String getProductBrandField() {
+		return productBrandField.getText();
+	}
+	public float getProductPriceField() {
+		return Float.parseFloat(productPriceField.getText());
+	}
+	public String getNewProductCategoryDropdown() {
+		return (String) newProductCategoryDropdown.getSelectedItem();
+	}
+	public String getNewProductStatusDropdown() {
+		return (String) newProductStatusDropdown.getSelectedItem();
+	}
+	public void setAddProductAction(ActionListener listener) {
+    	addProductButton.addActionListener(listener);
+    }
+	
+	/*add new supplier action listener */
+	
+	/* add new vehicle action listener */
+	
+	//update order status action listner
+	public String getNewStatus() { return (String) newStatusOptions.getSelectedItem(); }
+	public void setUpdateStatusAction(ActionListener listener) {
+        if (updateStatusButton != null) updateStatusButton.addActionListener(listener);
+    }
+	
+	 
+    //restock action listener
+    public int getRestockProductId() {
+    	return Integer.parseInt(restockProductIdField.getText());
+    }
+    public int getRestockSupplierId() {
+    	return Integer.parseInt(restockSupplierIdField.getText());
+    }
+    public int getRestockVehicleId() {
+    	return Integer.parseInt(restockVehicleIdField.getText());
+    }
+    public int getRestockQuantity() {
+    	return Integer.parseInt(restockQuantityField.getText());
+    }
+    public int getRestockCost() {
+    	return Integer.parseInt(restockCostField.getText());
+    }
+    public void setShipAction(ActionListener listener) {
+    	shipButton.addActionListener(listener);
+    }
+    
+    //update restock action listener
+    public int getSupplierShipmentId() {
+    	return Integer.parseInt(restockSupplierShipmentIdField.getText());
+    }
+    public void setUpdateArrivalAction(ActionListener listener) {
+    	updateArrivalButton.addActionListener(listener);
+    }
+    
+    //reports sales aciton listener
+    public String getSalesMonth() {
+    	return (String) salesMonth.getSelectedItem();
+    }
+    public String getSalesYear() {
+    	return (String) salesYear.getSelectedItem();
+    }
+    public void setMonthResult(String month) {
+    	monthResult.setText(month);
+    }
+    public void setYearResult(String year) {
+    	yearResult.setText(year);
+    }
+    public void setTotalRevenueResult(String revenue) {
+    	totalRevenueResult.setText(revenue);
+    }
+    public void setTotalOrderResult(String order) {
+    	totalOrderResult.setText(order);
+    }
     public void setSalesReportAction(ActionListener listener) {
-      if (salesReportButton != null)salesReportButton.addActionListener(listener);
+ 	  if (salesReportButton != null)salesReportButton.addActionListener(listener);
+ 		
     }
+	
+    
     
 }

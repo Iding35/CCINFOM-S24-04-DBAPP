@@ -1,3 +1,4 @@
+
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -375,45 +376,108 @@ public class AdminModel {
     }
     
     public double getTotalRevenue(String month, String year) throws SQLException{
-    	String sql = "SELECT SUM(total_price) \r\n"
-    			+ "FROM Orders\r\n"
-    			+ "WHERE MONTH(order_datetime) = ? AND YEAR(order_datetime) = ? AND status = 'Completed';";
-    	
-    	try(Connection conn = db.getConnection();
-    		PreparedStatement stmt = conn.prepareStatement(sql)){
-    		
-    		stmt.setString(1, month);
-    		stmt.setString(2, year);
-    		
-    		try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getDouble(1); // Return 0.0 if SUM returns NULL
-                }
+        String sql = "SELECT SUM(total_price) FROM Orders WHERE MONTH(order_datetime) = ? AND YEAR(order_datetime) = ? AND status = 'Completed';";
+        try(Connection conn = db.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)){
+            stmt.setString(1, month);
+            stmt.setString(2, year);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) return rs.getDouble(1);
             }
-    	}
-    	
-    	return 0.00; // Return 0.0 if SUM returns NULL
+        }
+        return 0.00;
     }
     
-	public int getTotalOrder(String month, String year) throws SQLException{
-		String sql = "SELECT COUNT(order_id)\r\n"
-				+ "FROM Orders\r\n"
-				+ "WHERE MONTH(order_datetime) = ? AND YEAR(order_datetime) = ? AND status = 'Completed';\r\n";
-		
-		try(Connection conn = db.getConnection();
-    		PreparedStatement stmt = conn.prepareStatement(sql)){
-    		
-    		stmt.setString(1, month);
-    		stmt.setString(2, year);
-    		
-    		try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt(1); // Return 0.0 if SUM returns NULL
-                }
+    public int getTotalOrder(String month, String year) throws SQLException{
+        String sql = "SELECT COUNT(order_id) FROM Orders WHERE MONTH(order_datetime) = ? AND YEAR(order_datetime) = ? AND status = 'Completed';";
+        try(Connection conn = db.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)){
+            stmt.setString(1, month);
+            stmt.setString(2, year);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
             }
-    	}
-		
-	    return 0;
-	}
+        }
+        return 0;
+    }
+    
+    public DefaultTableModel getProductRefundsReport(String month, String year) throws SQLException {
+        String sql = "SELECT r.return_reason AS 'Reason', COUNT(r.return_id) AS 'Count', " +
+                     "SUM(r.product_quantity) AS 'Total Quantity Returned' " +
+                     "FROM Returns r " +
+                     "WHERE MONTH(r.return_date) = ? AND YEAR(r.return_date) = ? " +
+                     "GROUP BY r.return_reason";
+        
+        try (Connection conn = db.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, month);
+            stmt.setString(2, year);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return buildTableModel(rs);
+            }
+        }
+    }
+    
+    public DefaultTableModel getInventoryTrackingReport(String month, String year) throws SQLException {
+        String sql = "SELECT p.name AS 'Product Name', " +
+                     "COALESCE(SUM(DISTINCT CASE WHEN MONTH(o.order_datetime) = ? AND YEAR(o.order_datetime) = ? AND o.status = 'Completed' THEN od.quantity ELSE 0 END), 0) AS 'Sold (Month)', " +
+                     "COALESCE(SUM(DISTINCT CASE WHEN MONTH(di.arrival_datetime) = ? AND YEAR(di.arrival_datetime) = ? AND di.status = 'Complete' THEN ss.quantity ELSE 0 END), 0) AS 'Replenished (Month)', " +
+                     "p.quantity AS 'Current Stock Level' " +
+                     "FROM Products p " +
+                     "LEFT JOIN Order_Details od ON p.product_id = od.product_id " +
+                     "LEFT JOIN Orders o ON od.order_id = o.order_id " +
+                     "LEFT JOIN Supplier_Shipment ss ON p.product_id = ss.product_id " +
+                     "LEFT JOIN Delivery_Info di ON ss.delivery_id = di.delivery_id " +
+                     "GROUP BY p.product_id, p.name, p.quantity";
+
+        try (Connection conn = db.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, month);
+            stmt.setString(2, year);
+            stmt.setString(3, month);
+            stmt.setString(4, year);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return buildTableModel(rs);
+            }
+        }
+    }
+    
+    public DefaultTableModel getTop5SellingProducts(String year) throws SQLException {
+        String sql = "SELECT p.name AS 'Product Name', " +
+                     "SUM(od.quantity) AS 'Total Sold', " +
+                     "FORMAT(SUM(od.unit_price * od.quantity), 2) AS 'Total Revenue' " +
+                     "FROM Order_Details od " +
+                     "JOIN Orders o ON od.order_id = o.order_id " +
+                     "JOIN Products p ON od.product_id = p.product_id " +
+                     "WHERE YEAR(o.order_datetime) = ? AND o.status = 'Completed' " +
+                     "GROUP BY p.product_id, p.name " +
+                     "ORDER BY SUM(od.quantity) DESC " +
+                     "LIMIT 5";
+
+        try (Connection conn = db.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, year);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return buildTableModel(rs);
+            }
+        }
+    }
+    
+ // Helper method to convert ResultSet to DefaultTableModel
+    private DefaultTableModel buildTableModel(ResultSet rs) throws SQLException {
+        ResultSetMetaData metaData = rs.getMetaData();
+        int columnCount = metaData.getColumnCount();
+        DefaultTableModel model = new DefaultTableModel();
+
+        for (int i = 1; i <= columnCount; i++) {
+            model.addColumn(metaData.getColumnLabel(i));
+        }
+
+        while (rs.next()) {
+            Object[] row = new Object[columnCount];
+            for (int i = 0; i < columnCount; i++) {
+                row[i] = rs.getObject(i + 1);
+            }
+            model.addRow(row);
+        }
+        return model;
+    }
+    
+    
 
 }

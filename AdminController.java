@@ -22,7 +22,7 @@ public class AdminController {
     	view.setViewVehiclesAction(e -> showVehicleListing());
     	view.setViewOrdersAction(e -> showOrderListing());
     	view.setViewSupplierShipmentkAction(e -> showSupplierShipmentListing());
-    	view.setViewReportsAction(e -> showSalesReport());
+    	view.setViewReportsAction(e -> showReportPanel());
     	
     	//east panel
         view.setProductUpdateAction(e -> handleProductUpdate());
@@ -32,44 +32,71 @@ public class AdminController {
         view.setUpdateStatusAction(e -> handleOrderUpdateStatus());
         view.setShipAction(e -> handleRestock());
         view.setUpdateArrivalAction(e -> handleUpdateArrivalRestock());
-        view.setSalesReportAction(e -> handleSalesReport());
+        view.setSalesReportAction(e -> handleGenerateReport());
     }
     
-    private void showSalesReport() {
-    	view.setEastPanelContent("REPORT");
-    	view.setReportData("SALES");	
-    	
+    private void showReportPanel() {
+        view.setEastPanelContent("REPORT");
     }
    
-   private void handleSalesReport() {
-    	String month = view.getSalesMonth();
-    	String year = view.getSalesYear();
-   	
-	  	if(month.isEmpty() || year.isEmpty()) {
-	   		JOptionPane.showMessageDialog(view, "Please fill in all fields.", "Input Error", JOptionPane.ERROR_MESSAGE);
-	            return;
-	   	}
-	    	
-	   	try {
-	   		
-	   		double totalRevenue = model.getTotalRevenue(month, year); //formatted kasi
-	   		int totalOrders = model.getTotalOrder(month, year);
-	    	
-	   		view.setMonthResult(month);
-	   		view.setYearResult(year);
-	   		
-	   		String formattedRevenue = String.format("₱%,.2f", totalRevenue);
-	   		view.setTotalRevenueResult(formattedRevenue);
-	   		view.setTotalOrderResult(String.valueOf(totalOrders));
-	   		
-	   		JOptionPane.showMessageDialog(view, "Sales Report generated for " + month + "/" + year, "Report Success", JOptionPane.INFORMATION_MESSAGE);
-	   		
-	   	}
-	   	catch(SQLException ex) {
-	   		JOptionPane.showMessageDialog(view, "Error generating sales report: " + ex.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
-	        ex.printStackTrace();
-	   	}
-	   	
+    private void handleGenerateReport() {
+        String reportType = view.getSelectedReportType();
+        String month = view.getSalesMonth();
+        String year = view.getSalesYear();
+        
+        // Validation
+        if (year.isEmpty()) {
+             JOptionPane.showMessageDialog(view, "Please select a year.", "Input Error", JOptionPane.ERROR_MESSAGE);
+             return;
+        }
+
+        try {
+            switch (reportType) {
+                case "Sales Report":
+                    if(month.isEmpty()) {
+                        JOptionPane.showMessageDialog(view, "Please select a month.", "Input Error", JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+                    double totalRevenue = model.getTotalRevenue(month, year); 
+                    int totalOrders = model.getTotalOrder(month, year);
+                    
+                    view.setMonthResult(month);
+                    view.setYearResult(year);
+                    String formattedRevenue = String.format("₱%,.2f", totalRevenue);
+                    view.setTotalRevenueResult(formattedRevenue);
+                    view.setTotalOrderResult(String.valueOf(totalOrders));
+                    
+                    // This method switches center panel to the grid layout for specific sales summary
+                    view.setReportData("SALES"); 
+                    break;
+
+                case "Product Refunds Report":
+                    if(month.isEmpty()) {
+                         JOptionPane.showMessageDialog(view, "Please select a month.", "Input Error", JOptionPane.ERROR_MESSAGE);
+                         return;
+                    }
+                    view.displayTableData(model.getProductRefundsReport(month, year));
+                    break;
+
+                case "Inventory Tracking Report":
+                    if(month.isEmpty()) {
+                         JOptionPane.showMessageDialog(view, "Please select a month.", "Input Error", JOptionPane.ERROR_MESSAGE);
+                         return;
+                    }
+                    view.displayTableData(model.getInventoryTrackingReport(month, year));
+                    break;
+
+                case "Top 5 Sellable Products":
+                    view.displayTableData(model.getTop5SellingProducts(year));
+                    break;
+            }
+            
+            JOptionPane.showMessageDialog(view, reportType + " generated successfully!", "Report Success", JOptionPane.INFORMATION_MESSAGE);
+
+        } catch(SQLException ex) {
+            JOptionPane.showMessageDialog(view, "Error generating report: " + ex.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+            ex.printStackTrace();
+        }
     }
     
     

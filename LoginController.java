@@ -62,14 +62,23 @@ public class LoginController {
 		String enteredPassword = loginView.getPassword();
 		
 		if(loginModel.checkCustomer(enteredEmail, enteredPassword)) {
+            
+            int customerId = loginModel.getCustomerId(enteredEmail);
+            if (customerId == -1) {
+                JOptionPane.showMessageDialog(loginView, "Could not find customer ID.", "Login Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            
 			loginView.dispose();
 			CustomerView customerView = new CustomerView();
 			CustomerModel customerModel = new CustomerModel();
-			new CustomerController(customerView, customerModel);
+            
+            
+			new CustomerController(customerView, customerModel, customerId); 
+           
 		}
 		else {
-			JOptionPane.showMessageDialog(loginView, "Invalid username or password.", "Login Error", JOptionPane.ERROR_MESSAGE);
+			JOptionPane.showMessageDialog(loginView, "Invalid email or password.", "Login Error", JOptionPane.ERROR_MESSAGE);
 		}
-		
 	}
 }	

@@ -5,6 +5,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
 import java.sql.SQLException;
+import java.awt.FlowLayout;
 
 
 public class CustomerController {
@@ -33,8 +34,6 @@ public class CustomerController {
         // 2. Set up action listeners
         view.setAddToCartAction(e -> handleAddToCart());
         view.setViewCartAction(e -> handleViewCart());
-        
-        // UN-COMMENT THIS LINE NOW:
         view.setViewProfileAction(e -> handleViewProfile()); 
     }
 
@@ -55,7 +54,7 @@ public class CustomerController {
 
     /**
      * Action for the "View Cart" button.
-     * Displays the cart in a popup and allows the user to Checkout.
+     * Displays the cart in a popup and allows the user to Checkout or Remove items.
      */
     private void handleViewCart() {
         try {
@@ -70,16 +69,60 @@ public class CustomerController {
 
             // 3. Create a read-only table for the popup
             JTable cartTable = new JTable(cartModel);
-            cartTable.setEnabled(false); // User can't edit cells directly
             
-            // 4. Create a panel to hold the Table AND the Checkout Button
+            // HIDE the product_id column (first column, index 0)
+            cartTable.getColumnModel().getColumn(0).setMinWidth(0);
+            cartTable.getColumnModel().getColumn(0).setMaxWidth(0);
+            cartTable.getColumnModel().getColumn(0).setWidth(0);
+            
+            // 4. Create UI components for the dialog
             JPanel panel = new JPanel(new java.awt.BorderLayout());
             panel.add(new JScrollPane(cartTable), java.awt.BorderLayout.CENTER);
             
-            // Create the Checkout Button
-            JButton checkoutBtn = new JButton("Checkout / Place Order");
+            // Button Panel (South)
+            // FIX: Changed FlowLayout.RIGHT to FlowLayout.CENTER to center the buttons
+            JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
             
-            // Add the Checkout Logic (The code we wrote in the previous step)
+            // Create buttons
+            JButton checkoutBtn = new JButton("Checkout / Place Order");
+            JButton removeBtn = new JButton("Remove Selected Item");
+            
+            // 5. Add Button Listeners
+            
+            // --- REMOVE ACTION ---
+            removeBtn.addActionListener(e -> {
+                int selectedRow = cartTable.getSelectedRow();
+                if (selectedRow == -1) {
+                    JOptionPane.showMessageDialog(view, "Please select an item to remove.", "Selection Required", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+                
+                // Get the Product ID from the hidden first column (index 0)
+                int productIdToRemove = (int) cartTable.getValueAt(selectedRow, 0); 
+                String productName = (String) cartTable.getValueAt(selectedRow, 1); // Get name for confirmation
+                
+                int confirm = JOptionPane.showConfirmDialog(view, 
+                        "Are you sure you want to remove " + productName + " from your cart?", 
+                        "Confirm Removal", 
+                        JOptionPane.YES_NO_OPTION);
+                
+                if (confirm == JOptionPane.YES_OPTION) {
+                    if (model.removeFromCart(this.customerId, productIdToRemove)) {
+                        JOptionPane.showMessageDialog(view, productName + " removed successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                        
+                        // IMPORTANT: Manually close the existing dialog
+                        java.awt.Window w = javax.swing.SwingUtilities.getWindowAncestor(removeBtn);
+                        if (w != null) w.setVisible(false);
+                        
+                        // Re-open the cart dialog to show the refreshed state
+                        handleViewCart();
+                    } else {
+                        JOptionPane.showMessageDialog(view, "Failed to remove item. Database error.", "Error", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            });
+            
+            // --- CHECKOUT ACTION (Logic retained) ---
             checkoutBtn.addActionListener(e -> {
                 int confirm = JOptionPane.showConfirmDialog(view, 
                         "Are you sure you want to place this order?", 
@@ -87,25 +130,26 @@ public class CustomerController {
                         JOptionPane.YES_NO_OPTION);
                         
                 if (confirm == JOptionPane.YES_OPTION) {
-                    // Call the placeOrder method in the model
                     if (model.placeOrder(this.customerId)) {
                          JOptionPane.showMessageDialog(view, "Order placed successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
                          
-                         // IMPORTANT: Close the popup window manually (since it's a JOptionPane)
                          java.awt.Window w = javax.swing.SwingUtilities.getWindowAncestor(checkoutBtn);
                          if (w != null) w.setVisible(false);
                          
-                         // Refresh the main product list (in case stock changed)
                          loadProductList();
                     } else {
-                         JOptionPane.showMessageDialog(view, "Failed to place order. Please try again.", "Error", JOptionPane.ERROR_MESSAGE);
+                         JOptionPane.showMessageDialog(view, "Failed to place order. Cart might be empty or stock insufficient.", "Error", JOptionPane.ERROR_MESSAGE);
                     }
                 }
             });
             
-            panel.add(checkoutBtn, java.awt.BorderLayout.SOUTH);
+            // 6. Assemble the button panel
+            buttonPanel.add(removeBtn);
+            buttonPanel.add(checkoutBtn);
+            
+            panel.add(buttonPanel, java.awt.BorderLayout.SOUTH);
 
-            // 5. Show the popup
+            // 7. Show the popup
             JOptionPane.showMessageDialog(view, panel, "Your Shopping Cart", JOptionPane.PLAIN_MESSAGE);
             
         } catch (SQLException e) {
@@ -113,6 +157,8 @@ public class CustomerController {
             JOptionPane.showMessageDialog(view, "Error loading cart: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
         }
     }
+    
+    
     private void handleAddToCart() {
         
         int selectedProductId = view.getSelectedProductId();

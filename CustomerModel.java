@@ -52,12 +52,15 @@ public class CustomerModel {
         return getTableData(sql);
     }
 
-
+    /**
+     * Retrieves cart items. NOW includes p.product_id as the first column 
+     * for easy removal logic in the controller.
+     */
     public DefaultTableModel getCartItems(int customerId) throws SQLException {
-        String sql = "SELECT p.name, p.price, c.quantity, (p.price * c.quantity) AS total_item_price " +
+        String sql = "SELECT p.product_id, p.name, p.price, c.quantity, (p.price * c.quantity) AS total_item_price " +
                      "FROM Cart c " +
                      "JOIN Products p ON c.product_id = p.product_id " +
-                     "WHERE c.customer_id = " + customerId; // Simple for now
+                     "WHERE c.customer_id = " + customerId; 
         return getTableData(sql);
     }
     
@@ -77,6 +80,25 @@ public class CustomerModel {
             return false;
         }
     }
+    
+    /**
+     * NEW: Removes a specific product from the customer's cart.
+     */
+    public boolean removeFromCart(int customerId, int productId) {
+        String sql = "DELETE FROM Cart WHERE customer_id = ? AND product_id = ?";
+        try {
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setInt(1, customerId);
+            ps.setInt(2, productId);
+            
+            int rowsAffected = ps.executeUpdate();
+            return rowsAffected > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     public boolean placeOrder(int customerId) {
         PreparedStatement ps = null;
         ResultSet rs = null;
@@ -86,7 +108,6 @@ public class CustomerModel {
             connection.setAutoCommit(false); 
 
             // --- A. Get Customer's Address & Calculate Total ---
-            // We assume the shipping address is the customer's main address for now
             int addressId = 0;
             String addressSql = "SELECT address_id FROM Customers WHERE customer_id = ?";
             ps = connection.prepareStatement(addressSql);
@@ -136,7 +157,6 @@ public class CustomerModel {
             ps.close();
 
             // --- C. Move Items from Cart to Order_Details ---
-            // We need to fetch cart items first to get prices and product IDs
             String cartSql = "SELECT c.product_id, c.quantity, p.price FROM Cart c JOIN Products p ON c.product_id = p.product_id WHERE c.customer_id = ?";
             ps = connection.prepareStatement(cartSql);
             ps.setInt(1, customerId);
@@ -198,8 +218,6 @@ public class CustomerModel {
     }
     /**
      * Fetches the customer's profile and address as a formatted String.
-     * @param customerId The ID of the logged-in customer.
-     * @return A String containing the formatted profile info.
      */
     public String getCustomerProfile(int customerId) {
         StringBuilder sb = new StringBuilder();

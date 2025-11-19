@@ -1,4 +1,3 @@
-
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -11,7 +10,6 @@ public class AdminModel {
     private DBConnect db = new DBConnect();
     
     public DefaultTableModel getTableData(String query) throws SQLException {
-        
         DefaultTableModel model = new DefaultTableModel();
         try (Connection conn = db.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query);
@@ -41,7 +39,12 @@ public class AdminModel {
     }
     
     public DefaultTableModel getSupplierListing() throws SQLException {
-        String sql = "SELECT * FROM suppliers ORDER BY supplier_id";
+        // Joins address so the table looks nicer
+        String sql = "SELECT s.supplier_id, s.company_name, s.phone_number, s.email, " +
+                     "CONCAT(a.street, ', ', a.city, ' ', a.zip_code) AS address " +
+                     "FROM Suppliers s " +
+                     "JOIN Addresses a ON s.address_id = a.address_id " +
+                     "ORDER BY s.supplier_id";
         return getTableData(sql);
     }
     
@@ -105,6 +108,103 @@ public class AdminModel {
     	}
     }
     
+    public boolean isSupplierEmailUnique(String email) {
+        String sql = "SELECT 1 FROM Suppliers WHERE email = ?";
+        try (Connection conn = db.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, email);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return !rs.next(); // Returns true if NO record found (Unique)
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false; 
+        }
+    }
+    
+    public boolean isSupplierPhoneUnique(String phone) {
+        String sql = "SELECT 1 FROM Suppliers WHERE phone_number = ?";
+        try (Connection conn = db.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, phone);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return !rs.next(); // Returns true if NO record found (Unique)
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+    
+    public boolean createNewSupplier(String name, String phone, String email, String street, String city, String zipCode) {
+        String sqlAddress = "INSERT INTO Addresses (street, city, zip_code) VALUES (?, ?, ?)";
+        String sqlSupplier = "INSERT INTO Suppliers (company_name, phone_number, email, address_id) VALUES (?, ?, ?, ?)";
+        
+        Connection conn = null;
+        PreparedStatement stmtAddr = null;
+        PreparedStatement stmtSup = null;
+        ResultSet generatedKeys = null;
+
+        try {
+            conn = db.getConnection();
+            conn.setAutoCommit(false); // Start Transaction
+
+            // 1. Insert Address
+            stmtAddr = conn.prepareStatement(sqlAddress, Statement.RETURN_GENERATED_KEYS);
+            stmtAddr.setString(1, street);
+            stmtAddr.setString(2, city);
+            stmtAddr.setString(3, zipCode);
+            
+            int affectedRows = stmtAddr.executeUpdate();
+            if (affectedRows == 0) {
+                throw new SQLException("Creating address failed, no rows affected.");
+            }
+
+            // 2. Retrieve Address ID
+            generatedKeys = stmtAddr.getGeneratedKeys();
+            int addressId;
+            if (generatedKeys.next()) {
+                addressId = generatedKeys.getInt(1);
+            } else {
+                throw new SQLException("Creating address failed, no ID obtained.");
+            }
+
+            // 3. Insert Supplier
+            stmtSup = conn.prepareStatement(sqlSupplier);
+            stmtSup.setString(1, name);
+            stmtSup.setString(2, phone);
+            stmtSup.setString(3, email);
+            stmtSup.setInt(4, addressId);
+            
+            stmtSup.executeUpdate();
+
+            conn.commit();
+            return true;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            if (conn != null) {
+                try {
+                    conn.rollback(); // Rollback on error
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
+            }
+            JOptionPane.showMessageDialog(null, "Database Error: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            return false;
+        } finally {
+            try {
+                if (generatedKeys != null) generatedKeys.close();
+                if (stmtAddr != null) stmtAddr.close();
+                if (stmtSup != null) stmtSup.close();
+                if (conn != null) conn.setAutoCommit(true);
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+    
     //FOR SUPPLIER ADD VALIDATION FOR PHONE AND EMAIL
     //public boolean isValidPhone(String phone)
     //public boolean isValidEmail(String email)
@@ -134,7 +234,112 @@ public class AdminModel {
         return false;
     }
     
+    public boolean isValidPlate(String plate) {
+        String sql = "SELECT 1 FROM Vehicles WHERE plate_number = ?";
+        try (Connection conn = db.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, plate);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return !rs.next(); // Returns true if NO record found (Unique)
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+    
+    public boolean createNewVehicle(String plate, String type, String status) {
+        String sql = "INSERT INTO Vehicles (plate_number, type, status) VALUES (?, ?, ?)";
+        try(Connection conn = db.getConnection();
+            PreparedStatement stmt = conn.prepareStatement(sql)){
+            stmt.setString(1, plate);
+            stmt.setString(2, type);
+            stmt.setString(3, status);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, "Database error: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+    }
+    
     public boolean restockShippment(int productID, int supplierID, int vehicleID, int quantity, int cost, String shippingDateTime) {
+    	String sqlInsertDeliveryInfo = "INSERT INTO Delivery_Info (vehicle_id, shipping_datetime, arrival_datetime, status)\r\n"
+    			+ "VALUES"
+    			+ "(?, ?, NULL, 'Shipping')";
+   
+    	String sqlInsertSupplierShipment = "INSERT INTO Supplier_Shipment (product_id, supplier_id, product_cost, quantity, delivery_id)\r\n"
+    			+ "VALUES"
+    			+ "(?, ?, ?, ?, ?)";
+    	
+    	String sqlUpdateVehicle = "UPDATE Vehicles\r\n"
+    			+ "SET status = 'Occupied'\r\n"
+    			+ "WHERE vehicle_id = ?";
+    	
+    	int deliveryInfoID = -1;
+    	
+    	try(Connection conn = db.getConnection()){
+    		conn.setAutoCommit(false);
+    		
+    		try(PreparedStatement stmtDelivery = conn.prepareStatement(sqlInsertDeliveryInfo, PreparedStatement.RETURN_GENERATED_KEYS)){
+    			stmtDelivery.setInt(1, vehicleID);
+    			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                LocalDateTime ldt = LocalDateTime.parse(shippingDateTime, formatter);
+                Timestamp timestamp = Timestamp.valueOf(ldt);
+    			stmtDelivery.setTimestamp(2, timestamp);
+    			
+    			int affectedRows = stmtDelivery.executeUpdate();
+    			
+    			if(affectedRows == 0) {
+    				conn.rollback();
+    				System.err.println("Delivery_Info insertion failed (0 rows affected).");
+    				return false;
+    			}
+    			
+        		try(ResultSet generatedAddressID = stmtDelivery.getGeneratedKeys()){
+        			if(generatedAddressID.next()) {
+        				deliveryInfoID = generatedAddressID.getInt(1);
+        			}
+        			else {
+        				conn.rollback();
+        				throw new SQLException("Failed to retrieve auto-generated delivery_id.");
+        			}
+        		}
+    		}
+    		
+    		try(PreparedStatement stmtSupplier = conn.prepareStatement(sqlInsertSupplierShipment)){
+    			stmtSupplier.setInt(1, productID);
+    			stmtSupplier.setInt(2, supplierID);
+    			stmtSupplier.setInt(3, cost);
+    			stmtSupplier.setInt(4, quantity);
+    			stmtSupplier.setInt(5, deliveryInfoID);
+    			
+    			int affectedRows = stmtSupplier.executeUpdate();
+    			if(affectedRows == 0) {
+    				conn.rollback();
+    				System.err.println("Delivery_Info insertion failed (0 rows affected).");
+    				return false;
+    			}
+    		}
+    		
+    		try(PreparedStatement stmtVehicle = conn.prepareStatement(sqlUpdateVehicle)){
+    			stmtVehicle.setInt(1, vehicleID);
+    			int affectedRows = stmtVehicle.executeUpdate();
+    			if(affectedRows == 0) {
+    				conn.rollback();
+    				System.err.println("Vehicle status update failed (0 rows affected).");
+    				return false;
+    			}
+    		}
+    		conn.commit();
+    		return true;
+    	}catch(SQLException e) {
+    		e.printStackTrace();
+    		JOptionPane.showMessageDialog(null, "Database error: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+    	}
+    	return false;
+    }
+    
+    public boolean restockShipment(int productID, int supplierID, int vehicleID, int quantity, int cost, String shippingDateTime) {
 
     	String sqlInsertDeliveryInfo = "INSERT INTO Delivery_Info (vehicle_id, shipping_datetime, arrival_datetime, status)\r\n"
     			+ "VALUES"
@@ -476,6 +681,103 @@ public class AdminModel {
             model.addRow(row);
         }
         return model;
+    }
+    
+    public boolean isSupplierEmailUnique(String email) {
+        String sql = "SELECT 1 FROM Suppliers WHERE email = ?";
+        try (Connection conn = db.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, email);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return !rs.next(); // Returns true if NO record found (Unique)
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false; 
+        }
+    }
+
+    public boolean isSupplierPhoneUnique(String phone) {
+        String sql = "SELECT 1 FROM Suppliers WHERE phone_number = ?";
+        try (Connection conn = db.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, phone);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return !rs.next(); // Returns true if NO record found (Unique)
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean createNewSupplier(String name, String phone, String email, String street, String city, String zipCode) {
+        String sqlAddress = "INSERT INTO Addresses (street, city, zip_code) VALUES (?, ?, ?)";
+        String sqlSupplier = "INSERT INTO Suppliers (company_name, phone_number, email, address_id) VALUES (?, ?, ?, ?)";
+        
+        Connection conn = null;
+        PreparedStatement stmtAddr = null;
+        PreparedStatement stmtSup = null;
+        ResultSet generatedKeys = null;
+
+        try {
+            conn = db.getConnection();
+            conn.setAutoCommit(false); // Start Transaction
+
+            // 1. Insert Address
+            stmtAddr = conn.prepareStatement(sqlAddress, Statement.RETURN_GENERATED_KEYS);
+            stmtAddr.setString(1, street);
+            stmtAddr.setString(2, city);
+            stmtAddr.setString(3, zipCode);
+            
+            int affectedRows = stmtAddr.executeUpdate();
+            if (affectedRows == 0) {
+                throw new SQLException("Creating address failed, no rows affected.");
+            }
+
+            // 2. Retrieve Address ID
+            generatedKeys = stmtAddr.getGeneratedKeys();
+            int addressId;
+            if (generatedKeys.next()) {
+                addressId = generatedKeys.getInt(1);
+            } else {
+                throw new SQLException("Creating address failed, no ID obtained.");
+            }
+
+            // 3. Insert Supplier
+            stmtSup = conn.prepareStatement(sqlSupplier);
+            stmtSup.setString(1, name);
+            stmtSup.setString(2, phone);
+            stmtSup.setString(3, email);
+            stmtSup.setInt(4, addressId);
+            
+            stmtSup.executeUpdate();
+
+            conn.commit(); // Commit Transaction
+            return true;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            if (conn != null) {
+                try {
+                    conn.rollback(); // Rollback on error
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
+            }
+            JOptionPane.showMessageDialog(null, "Database Error: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            return false;
+        } finally {
+            try {
+                if (generatedKeys != null) generatedKeys.close();
+                if (stmtAddr != null) stmtAddr.close();
+                if (stmtSup != null) stmtSup.close();
+                if (conn != null) conn.setAutoCommit(true);
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
     }
     
     

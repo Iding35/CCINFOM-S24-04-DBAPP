@@ -31,24 +31,23 @@ public class CustomerController {
     }
 
     private void initController() {
-        // 1. Load the initial list of products
+
         loadProductList();
 
-        // 2. Set up action listeners
+
         view.setAddToCartAction(e -> handleAddToCart());
         view.setViewCartAction(e -> handleViewCart());
         view.setViewProfileAction(e -> handleViewProfile());
         view.setViewOrdersAction(e -> handleViewOrders()); 
-        
-        // Hook the Logout action
+
         view.setReturnToLoginAction(e -> handleLogout());
     }
 
     private void handleLogout() {
-        // Close the current customer frame
+
         view.dispose();
         
-        // Launch the Login MVC pair
+
         LoginView loginView = new LoginView();
         LoginModel loginModel = new LoginModel();
         new LoginController(loginView, loginModel);
@@ -79,7 +78,7 @@ public class CustomerController {
 
             JTable cartTable = new JTable(cartModel);
             
-            // HIDE the product_id column (first column, index 0)
+      
             cartTable.getColumnModel().getColumn(0).setMinWidth(0);
             cartTable.getColumnModel().getColumn(0).setMaxWidth(0);
             cartTable.getColumnModel().getColumn(0).setWidth(0);
@@ -87,13 +86,13 @@ public class CustomerController {
             JPanel panel = new JPanel(new java.awt.BorderLayout());
             panel.add(new JScrollPane(cartTable), java.awt.BorderLayout.CENTER);
             
-            // Button Panel (South) - Centered buttons for checkout/remove
+           
             JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
             
             JButton checkoutBtn = new JButton("Checkout / Place Order");
             JButton removeBtn = new JButton("Remove Selected Item"); 
             
-            // --- REMOVE ACTION (DELETE ENTIRE ROW) ---
+
             removeBtn.addActionListener(e -> {
                 int selectedRow = cartTable.getSelectedRow();
                 if (selectedRow == -1) {
@@ -101,22 +100,22 @@ public class CustomerController {
                     return;
                 }
                 
-                // Get the Product ID from the hidden first column (index 0)
+    
                 int productIdToRemove = (int) cartTable.getValueAt(selectedRow, 0); 
                 String productName = (String) cartTable.getValueAt(selectedRow, 1);
                 
-                // ASKING FOR CONFIRMATION TO REMOVE ALL
+     
                 int confirm = JOptionPane.showConfirmDialog(view, 
                         "Remove ALL instances of " + productName + " from cart?", 
                         "Confirm Removal (Full Item)", 
                         JOptionPane.YES_NO_OPTION);
                 
                 if (confirm == JOptionPane.YES_OPTION) {
-                    // Call the simple DELETE method
+
                     if (model.removeFullItem(this.customerId, productIdToRemove)) {
                         JOptionPane.showMessageDialog(view, "Item " + productName + " removed!", "Success", JOptionPane.INFORMATION_MESSAGE);
                         
-                        // Close and re-open the cart dialog to show the refreshed state
+    
                         java.awt.Window w = javax.swing.SwingUtilities.getWindowAncestor(removeBtn);
                         if (w != null) w.setVisible(false);
                         handleViewCart();
@@ -187,7 +186,7 @@ public class CustomerController {
     // Handler for the "My Orders" button (Includes Return Logic)
     private void handleViewOrders() {
         try {
-            // 1. Get Order History Data
+  
             DefaultTableModel orderHistoryModel = model.getCustomerOrderHistory(this.customerId);
             
             if (orderHistoryModel.getRowCount() == 0) {
@@ -195,22 +194,18 @@ public class CustomerController {
                 return;
             }
 
-            // Table Setup
             JTable orderTable = new JTable(orderHistoryModel);
             orderTable.setEnabled(true); // Must allow selection for returns
             orderTable.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
-            
-            // 2. Panel Setup
+
             JPanel panel = new JPanel(new BorderLayout(10, 10));
             JScrollPane orderScrollPane = new JScrollPane(orderTable);
             panel.add(orderScrollPane, BorderLayout.CENTER);
-            
-            // 3. Button Panel (South)
+
             JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
             
             JButton returnOrderButton = new JButton("Initiate Return for Selected Order");
-            
-            // 4. Button Action
+
             returnOrderButton.addActionListener(e -> {
                 int selectedRow = orderTable.getSelectedRow();
                 if (selectedRow == -1) {
@@ -221,7 +216,7 @@ public class CustomerController {
                 int orderId = (int) orderTable.getValueAt(selectedRow, 0); 
                 String status = (String) orderTable.getValueAt(selectedRow, 2); 
                 
-                // BUSINESS RULE CHECK: Must be 'Completed' to return
+      
                 if (!"Completed".equalsIgnoreCase(status)) {
                     JOptionPane.showMessageDialog(view, 
                         "Order ID " + orderId + " cannot be returned. Status must be 'Completed'. (Current: " + status + ").", 
@@ -229,15 +224,15 @@ public class CustomerController {
                     return;
                 }
                 
-                // Proceed to detailed return checks (7-day rule implementation is handled here)
+                
                 handleReturnCheck(orderId);
             });
             
-            // Add only the primary action button to the panel
+
             buttonPanel.add(returnOrderButton);
             panel.add(buttonPanel, BorderLayout.SOUTH);
             
-            // 5. Display the popup
+
             JOptionPane.showMessageDialog(
                 view, 
                 panel, 
@@ -251,7 +246,7 @@ public class CustomerController {
         }
     }
     
-    // Helper method for the final, detailed return check (placeholder for 7-day rule)
+
     private void handleReturnCheck(int orderId) {
         
         try {
@@ -267,7 +262,7 @@ public class CustomerController {
             return;
         }
         
-        // --- Final Confirmation ---
+  
         int confirm = JOptionPane.showConfirmDialog(view, 
             "Order ID " + orderId + " is eligible for return.\nDo you wish to proceed?", 
             "Confirm Return", 

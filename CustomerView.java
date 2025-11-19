@@ -36,12 +36,10 @@ public class CustomerView extends JFrame {
     
     public void init() {
         
-        // FIX: Use an anonymous JTable subclass to make the table non-editable,
-        // while ensuring the component itself remains enabled for selection.
         productTable = new JTable() {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false; // All cells are non-editable
+                return false; 
             }
         };
         
@@ -53,15 +51,9 @@ public class CustomerView extends JFrame {
         add(scrollPane, BorderLayout.CENTER);
         
         
-        // --- NEW NAVIGATION STRUCTURE (Far Right Logout) ---
-        
-        // Main container for navigation buttons (BorderLayout allows left/right separation)
+       
         JPanel northContainer = new JPanel(new BorderLayout());
-
-        // Panel for LEFT-ALIGNED buttons
         JPanel leftNavPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        
-        // Panel for RIGHT-ALIGNED buttons (Logout)
         JPanel rightLogoutPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         
         viewCartButton = new JButton("View Cart");
@@ -71,16 +63,15 @@ public class CustomerView extends JFrame {
         
         returnToLoginButton = new JButton("Return to Login"); 
         
-        // Add buttons to LEFT panel
+
         leftNavPanel.add(viewCartButton);
         leftNavPanel.add(addToCartButton);
         leftNavPanel.add(viewProfileButton);
         leftNavPanel.add(viewOrdersButton); 
-        
-        // Add button to RIGHT panel
+
         rightLogoutPanel.add(returnToLoginButton);
         
-        // Add the two sub-panels to the main North container
+
         northContainer.add(leftNavPanel, BorderLayout.WEST); 
         northContainer.add(rightLogoutPanel, BorderLayout.EAST);
         

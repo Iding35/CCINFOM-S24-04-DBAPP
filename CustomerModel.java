@@ -77,10 +77,7 @@ public class CustomerModel {
         }
     }
     
-    /**
-     * RESTORED: This method performs a full DELETE on the cart row, regardless of quantity.
-     * Renamed to removeFullItem to reflect functionality.
-     */
+
     public boolean removeFullItem(int customerId, int productId) {
         String sql = "DELETE FROM Cart WHERE customer_id = ? AND product_id = ?";
         try (Connection conn = db.getConnection();
@@ -229,10 +226,7 @@ public class CustomerModel {
         return model;
     }
 
-    /**
-     * FIX: Implements the three-way join (Orders -> Shipping -> Delivery_Info)
-     * to fetch the final customer delivery date (arrival_datetime).
-     */
+
     public String getCustomerDeliveryDate(int orderId) throws SQLException {
         String sql = "SELECT di.arrival_datetime " +
                      "FROM Orders o " +
@@ -254,9 +248,7 @@ public class CustomerModel {
         return null; 
     }
 
-    /**
-     * Checks if the order is past the 7-day return deadline based on the fixed database structure.
-     */
+
     public boolean isPastReturnDeadline(int orderId) throws SQLException {
         String deliveryDateStr = getCustomerDeliveryDate(orderId);
         

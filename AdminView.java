@@ -19,6 +19,8 @@ public class AdminView extends JFrame {
     private JButton viewOrdersButton;
     private JButton viewSupplierShipmentButton;
     private JButton viewReportsButton;
+    // NEW: Logout button field
+    private JButton returnToLoginButton; 
     
     //update product
     private JTextField productIdField;
@@ -116,25 +118,40 @@ public class AdminView extends JFrame {
         northLabel.setFont(new Font("Veranda", Font.BOLD, 30));
         northPanel.add(northLabel, BorderLayout.CENTER);
 
-        JPanel navPanel = new JPanel(new FlowLayout());
-        navPanel.setBackground(Color.BLACK);
+        // --- NEW NAVIGATION STRUCTURE (Split Left/Right) ---
         
+        // Main container for navigation buttons (BorderLayout allows left/right separation)
+        JPanel navContainer = new JPanel(new BorderLayout());
+        navContainer.setBackground(Color.BLACK);
+
+        // 1. LEFT Panel: All the navigational buttons (FlowLayout)
+        JPanel leftNavPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        leftNavPanel.setBackground(Color.BLACK);
+        
+        // 2. RIGHT Panel: Only the Logout button (FlowLayout)
+        JPanel rightLogoutPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        rightLogoutPanel.setBackground(Color.BLACK);
+        
+        // Initialize Buttons
         viewProductsButton = new JButton("View Products");
         viewOrdersButton = new JButton("View Orders");
         viewSuppliersButton = new JButton("View Suppliers");
         viewVehiclesButton = new JButton("View Vehicles");
         viewSupplierShipmentButton = new JButton("View Supplier Shipments");
         viewReportsButton = new JButton("Sales Report");
+        returnToLoginButton = new JButton("Return to Login"); // FIX: Initialized here
         
+        // Button Colors
         viewProductsButton.setBackground(Color.decode("#ADD1DB"));
         viewOrdersButton.setBackground(Color.decode("#ADD1DB"));
         viewSuppliersButton.setBackground(Color.decode("#ADD1DB"));
         viewVehiclesButton.setBackground(Color.decode("#ADD1DB"));
         viewSupplierShipmentButton.setBackground(Color.decode("#ADD1DB"));
         viewReportsButton.setBackground(Color.decode("#ADD1DB"));
+        returnToLoginButton.setBackground(Color.decode("#E0A8A8")); 
         
         
-        //FOR SALES REPORT
+        //FOR SALES REPORT LABELS
         this.monthResult = new JLabel("N/A");
         this.yearResult = new JLabel("N/A");
         this.totalRevenueResult = new JLabel("N/A");
@@ -144,15 +161,23 @@ public class AdminView extends JFrame {
         this.yearResult.setForeground(Color.WHITE);
         this.totalRevenueResult.setForeground(Color.WHITE);
         this.totalOrderResult.setForeground(Color.WHITE);
-        ;
-        navPanel.add(viewProductsButton);
-        navPanel.add(viewSuppliersButton);
-        navPanel.add(viewVehiclesButton);
-        navPanel.add(viewOrdersButton);
-        navPanel.add(viewSupplierShipmentButton);
-        navPanel.add(viewReportsButton);
         
-        northPanel.add(navPanel, BorderLayout.SOUTH);
+        // Add buttons to LEFT panel
+        leftNavPanel.add(viewProductsButton);
+        leftNavPanel.add(viewSuppliersButton);
+        leftNavPanel.add(viewVehiclesButton);
+        leftNavPanel.add(viewOrdersButton);
+        leftNavPanel.add(viewSupplierShipmentButton);
+        leftNavPanel.add(viewReportsButton);
+        
+        // Add button to RIGHT panel
+        rightLogoutPanel.add(returnToLoginButton);
+        
+        // Assemble navContainer
+        navContainer.add(leftNavPanel, BorderLayout.WEST);
+        navContainer.add(rightLogoutPanel, BorderLayout.EAST);
+        
+        northPanel.add(navContainer, BorderLayout.SOUTH); 
         
         this.add(northPanel, BorderLayout.NORTH);
         
@@ -212,15 +237,6 @@ public class AdminView extends JFrame {
         }
         refreshFrame();
     }
-//    	}
-//    	else if ("REFUNDS".equals(reportType)) {
-//    		contentPanel = //addPanel()
-//    	}
-//    	else if ("INVENTORY".equals(reportType)) {
-//    		contentPanel = //addPanel()
-//    	}
-//    	else if ("TOP5".equals(reportType)) {
-//    		contentPanel = //addPanel()
     
     public JPanel createProductPanel() {
     	JPanel panel = new JPanel();
@@ -823,6 +839,10 @@ public class AdminView extends JFrame {
     public void setViewReportsAction(ActionListener listener) {
         if (viewReportsButton != null) viewReportsButton.addActionListener(listener);
     }
+    // FIX: Method signature added
+    public void setReturnToLoginAction(ActionListener listener) {
+        if (returnToLoginButton != null) returnToLoginButton.addActionListener(listener);
+    }
     
     public String getProductIdField() { return productIdField.getText(); }
     public String getUpdateProductFieldDropdown() { return (String) updateProductFieldDropdown.getSelectedItem(); }
@@ -835,7 +855,13 @@ public class AdminView extends JFrame {
     public String getProductNameField() { return productNameField.getText(); }
     public String getProductDescriptionField() { return productDescriptionField.getText(); }
     public String getProductBrandField() { return productBrandField.getText(); }
-    public float getProductPriceField() { return Float.parseFloat(productPriceField.getText()); }
+    public float getProductPriceField() { 
+        try {
+            return Float.parseFloat(productPriceField.getText()); 
+        } catch (NumberFormatException e) {
+            return -1.0f; // Return sentinel value for controller validation
+        }
+    }
     public String getNewProductCategoryDropdown() { return (String) newProductCategoryDropdown.getSelectedItem(); }
     public String getNewProductStatusDropdown() { return (String) newProductStatusDropdown.getSelectedItem(); }
     public void setAddProductAction(ActionListener listener) { addProductButton.addActionListener(listener); }

@@ -38,8 +38,20 @@ public class CustomerController {
         view.setAddToCartAction(e -> handleAddToCart());
         view.setViewCartAction(e -> handleViewCart());
         view.setViewProfileAction(e -> handleViewProfile());
-        // FIX: Hook the "My Orders" button action listener
         view.setViewOrdersAction(e -> handleViewOrders()); 
+        
+        // Hook the Logout action
+        view.setReturnToLoginAction(e -> handleLogout());
+    }
+
+    private void handleLogout() {
+        // Close the current customer frame
+        view.dispose();
+        
+        // Launch the Login MVC pair
+        LoginView loginView = new LoginView();
+        LoginModel loginModel = new LoginModel();
+        new LoginController(loginView, loginModel);
     }
 
 
@@ -79,9 +91,9 @@ public class CustomerController {
             JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
             
             JButton checkoutBtn = new JButton("Checkout / Place Order");
-            JButton removeBtn = new JButton("Remove Selected Item");
+            JButton removeBtn = new JButton("Remove Selected Item"); 
             
-            // --- REMOVE ACTION (Decrement Quantity) ---
+            // --- REMOVE ACTION (DELETE ENTIRE ROW) ---
             removeBtn.addActionListener(e -> {
                 int selectedRow = cartTable.getSelectedRow();
                 if (selectedRow == -1) {
@@ -93,15 +105,16 @@ public class CustomerController {
                 int productIdToRemove = (int) cartTable.getValueAt(selectedRow, 0); 
                 String productName = (String) cartTable.getValueAt(selectedRow, 1);
                 
+                // ASKING FOR CONFIRMATION TO REMOVE ALL
                 int confirm = JOptionPane.showConfirmDialog(view, 
-                        "Remove one unit of " + productName + "?", 
-                        "Confirm Removal", 
+                        "Remove ALL instances of " + productName + " from cart?", 
+                        "Confirm Removal (Full Item)", 
                         JOptionPane.YES_NO_OPTION);
                 
                 if (confirm == JOptionPane.YES_OPTION) {
-                    // Calls the model method that decrements quantity
-                    if (model.decrementCartQuantity(this.customerId, productIdToRemove)) {
-                        JOptionPane.showMessageDialog(view, "Unit of " + productName + " removed!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                    // Call the simple DELETE method
+                    if (model.removeFullItem(this.customerId, productIdToRemove)) {
+                        JOptionPane.showMessageDialog(view, "Item " + productName + " removed!", "Success", JOptionPane.INFORMATION_MESSAGE);
                         
                         // Close and re-open the cart dialog to show the refreshed state
                         java.awt.Window w = javax.swing.SwingUtilities.getWindowAncestor(removeBtn);
@@ -192,7 +205,7 @@ public class CustomerController {
             JScrollPane orderScrollPane = new JScrollPane(orderTable);
             panel.add(orderScrollPane, BorderLayout.CENTER);
             
-            // 3. Button Panel (South) - Aligned Right for the single action button
+            // 3. Button Panel (South)
             JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
             
             JButton returnOrderButton = new JButton("Initiate Return for Selected Order");
@@ -205,9 +218,7 @@ public class CustomerController {
                     return;
                 }
                 
-                // Order ID is assumed to be the first column (index 0)
                 int orderId = (int) orderTable.getValueAt(selectedRow, 0); 
-                // Status is assumed to be the third column (index 2)
                 String status = (String) orderTable.getValueAt(selectedRow, 2); 
                 
                 // BUSINESS RULE CHECK: Must be 'Completed' to return
@@ -242,14 +253,19 @@ public class CustomerController {
     
     // Helper method for the final, detailed return check (placeholder for 7-day rule)
     private void handleReturnCheck(int orderId) {
-        // NOTE: The 7-day rule check requires fetching the final customer arrival date 
-        // which is a missing link in the current database design.
         
-        // --- Placeholder for Date Check Logic ---
-        // if (model.isPastReturnDeadline(orderId)) {
-        //      JOptionPane.showMessageDialog(view, "Return window closed. Deadline expired 7 days after delivery.", "Return Denied", JOptionPane.ERROR_MESSAGE);
-        //      return;
-        // }
+        try {
+            if (model.isPastReturnDeadline(orderId)) {
+                JOptionPane.showMessageDialog(view, 
+                    "Return window closed. Deadline expired 7 days after delivery (Delivery date is currently based on database link).", 
+                    "Return Denied", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(view, "Database error during date verification.", "Error", JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+            return;
+        }
         
         // --- Final Confirmation ---
         int confirm = JOptionPane.showConfirmDialog(view, 

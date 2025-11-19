@@ -24,6 +24,9 @@ public class AdminController {
     	view.setViewSupplierShipmentkAction(e -> showSupplierShipmentListing());
     	view.setViewReportsAction(e -> showReportPanel());
     	
+    	// NEW: Hook the Logout action
+    	view.setReturnToLoginAction(e -> handleLogout());
+    	
     	//east panel
         view.setProductUpdateAction(e -> handleProductUpdate());
         view.setAddProductAction(e -> handleNewProduct());
@@ -34,6 +37,17 @@ public class AdminController {
         view.setShipAction(e -> handleRestock());
         view.setUpdateArrivalAction(e -> handleUpdateArrivalRestock());
         view.setSalesReportAction(e -> handleGenerateReport());
+    }
+    
+    // NEW: Method to handle logout and return to the main Login screen
+    private void handleLogout() {
+        // Close the current Admin frame
+        view.dispose();
+        
+        // Launch the Login MVC pair
+        LoginView loginView = new LoginView();
+        LoginModel loginModel = new LoginModel();
+        new LoginController(loginView, loginModel);
     }
     
     private void showReportPanel() {
@@ -170,8 +184,8 @@ public class AdminController {
         }
         
     	if(name.isEmpty() || description.isEmpty() || brand.isEmpty() ||
-    			price == null || category.isEmpty() || status.isEmpty()) {
-    		JOptionPane.showMessageDialog(view, "Please fill in all fields.", "Error", JOptionPane.ERROR_MESSAGE);
+    			price == null || price <= 0 || category.isEmpty() || status.isEmpty()) {
+    		JOptionPane.showMessageDialog(view, "Please fill in all fields, and ensure Price is valid.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
     	}
     	
@@ -274,10 +288,6 @@ public class AdminController {
         }
     }
     
-    /*private void handleNewSupplier()*/
-    
-    /*private void handleNewVehicle()*/
-    
     private String getCurrentDateTime() {
     	DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     	LocalDateTime currentDateTime = LocalDateTime.now();
@@ -305,20 +315,27 @@ public class AdminController {
     		JOptionPane.showMessageDialog(view, "All fields must be in a number format.", "Input Error", JOptionPane.ERROR_MESSAGE);
             return;
     	}
+        
+        // CRITICAL BUSINESS RULE: Each shipment must contain at least one product.
+        if (quantity == null || quantity <= 0) {
+            JOptionPane.showMessageDialog(view, "Quantity must be greater than zero.", "Input Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
     	
     	if(!model.checkValidVehicle(vehicleID))  {
     		JOptionPane.showMessageDialog(view, "Vehicle ID provided is invalid or occupied.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
     	}
     	
-    	if(productID == null || supplierID == null || quantity == null || cost == null) {
+    	if(productID == null || supplierID == null || vehicleID == null || cost == null) {
     		JOptionPane.showMessageDialog(view, "Please fill in all fields.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
     	}
+        
     	if (model.restockShippment(productID, supplierID, vehicleID, quantity, cost, shippingDateTime)) {
 		    JOptionPane.showMessageDialog(view, "Product is shipping!", "Success", JOptionPane.INFORMATION_MESSAGE);
 		} else {
-		    JOptionPane.showMessageDialog(view, "Supplier creation failed. Check required values.", "Error", JOptionPane.ERROR_MESSAGE);
+		    JOptionPane.showMessageDialog(view, "Restock failed. Check required values or database connection.", "Error", JOptionPane.ERROR_MESSAGE);
 		}
     }
     

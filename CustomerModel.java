@@ -1,17 +1,16 @@
 import java.sql.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import javax.swing.table.DefaultTableModel;
 
 public class CustomerModel {
 
-    // Using a field connection for simplicity, though pooling/passing connections is robust
-    private Connection connection; 
-    
-    // Using a fresh DBConnect instance inside methods is often more robust for transaction management
     private DBConnect db = new DBConnect(); 
+    private Connection connection; 
 
     public CustomerModel() {
         try {
-            // Establish the initial connection (following existing pattern)
             this.connection = db.getConnection(); 
         } catch (SQLException e) {
             System.err.println("Failed to connect to the database in CustomerModel.");
@@ -25,20 +24,17 @@ public class CustomerModel {
 
 
     private DefaultTableModel getTableData(String query) throws SQLException {
-        DefaultTableModel model = new DefaultTableModel();
-        // Since connection is a field, we manage the Prepared/ResultSet resources
         try (PreparedStatement stmt = connection.prepareStatement(query);
-         ResultSet rs = stmt.executeQuery()) {
-        
+             ResultSet rs = stmt.executeQuery()) {
+            
+            DefaultTableModel model = new DefaultTableModel();
             ResultSetMetaData metaData = rs.getMetaData();
             int columnCount = metaData.getColumnCount();
 
-            // Add column names
             for (int i = 1; i <= columnCount; i++) {
                 model.addColumn(metaData.getColumnLabel(i));
             }
 
-            // Add rows
             while (rs.next()) {
                 Object[] row = new Object[columnCount];
                 for (int i = 0; i < columnCount; i++) {
@@ -46,8 +42,8 @@ public class CustomerModel {
                 }
                 model.addRow(row);
             }
+            return model;
         }
-        return model;
     }
 
 
@@ -56,11 +52,7 @@ public class CustomerModel {
         return getTableData(sql);
     }
 
-    /**
-     * Retrieves cart items. Includes p.product_id as the first column for removal logic.
-     */
     public DefaultTableModel getCartItems(int customerId) throws SQLException {
-        // CRITICAL FIX: Added p.product_id for removal logic
         String sql = "SELECT p.product_id, p.name, p.price, c.quantity, (p.price * c.quantity) AS total_item_price " +
                      "FROM Cart c " +
                      "JOIN Products p ON c.product_id = p.product_id " +
@@ -70,8 +62,6 @@ public class CustomerModel {
     
    
     public boolean addToCart(int customerId, int productId, int quantity) {
-        // This simple INSERT assumes (customer_id, product_id) is a primary/unique key 
-        // to prevent duplicate rows for the same product, relying on MySQL's error handling.
         String sql = "INSERT INTO Cart (customer_id, product_id, quantity) VALUES (?, ?, ?)";
         try {
             PreparedStatement ps = connection.prepareStatement(sql);
@@ -88,59 +78,23 @@ public class CustomerModel {
     }
     
     /**
-     * NEW: Decrements the quantity of a product in the cart by 1. 
-     * If the quantity hits 1, it performs a DELETE.
+     * RESTORED: This method performs a full DELETE on the cart row, regardless of quantity.
+     * Renamed to removeFullItem to reflect functionality.
      */
-    public boolean decrementCartQuantity(int customerId, int productId) {
-        String checkSql = "SELECT quantity FROM Cart WHERE customer_id = ? AND product_id = ?";
-        String updateSql = "UPDATE Cart SET quantity = quantity - 1 WHERE customer_id = ? AND product_id = ?";
-        String deleteSql = "DELETE FROM Cart WHERE customer_id = ? AND product_id = ?";
-        
-        // Using a try-with-resources block for connection management within the method is safer
-        try (Connection conn = db.getConnection()) { 
-            conn.setAutoCommit(false);
+    public boolean removeFullItem(int customerId, int productId) {
+        String sql = "DELETE FROM Cart WHERE customer_id = ? AND product_id = ?";
+        try (Connection conn = db.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
             
-            // --- Step 1: Check Current Quantity ---
-            try (PreparedStatement psCheck = conn.prepareStatement(checkSql)) {
-                psCheck.setInt(1, customerId);
-                psCheck.setInt(2, productId);
-                ResultSet rs = psCheck.executeQuery();
-                
-                if (rs.next()) {
-                    int currentQuantity = rs.getInt("quantity");
-                    
-                    if (currentQuantity > 1) {
-                        // --- Step 2: Reduce Quantity ---
-                        try (PreparedStatement psUpdate = conn.prepareStatement(updateSql)) {
-                            psUpdate.setInt(1, customerId);
-                            psUpdate.setInt(2, productId);
-                            psUpdate.executeUpdate();
-                        }
-                    } else if (currentQuantity == 1) {
-                        // --- Step 3: Delete Item (if quantity hits 1) ---
-                        try (PreparedStatement psDelete = conn.prepareStatement(deleteSql)) {
-                            psDelete.setInt(1, customerId);
-                            psDelete.setInt(2, productId);
-                            psDelete.executeUpdate();
-                        }
-                    } else {
-                        conn.rollback();
-                        return false; 
-                    }
-                } else {
-                    conn.rollback();
-                    return false; // Item not found in cart
-                }
-            }
+            ps.setInt(1, customerId);
+            ps.setInt(2, productId);
             
-            conn.commit();
-            return true;
-            
+            int rowsAffected = ps.executeUpdate();
+            return rowsAffected > 0;
         } catch (SQLException e) {
             e.printStackTrace();
-            // Since we established a new connection here, it handles rollback on its own
             return false;
-        } 
+        }
     }
 
     public boolean placeOrder(int customerId) {
@@ -148,10 +102,8 @@ public class CustomerModel {
         ResultSet rs = null;
         
         try (Connection conn = db.getConnection()){
-            // 1. Start Transaction
             conn.setAutoCommit(false); 
 
-            // --- A. Get Customer's Address & Calculate Total ---
             int addressId = 0;
             String addressSql = "SELECT address_id FROM Customers WHERE customer_id = ?";
             ps = conn.prepareStatement(addressSql);
@@ -166,7 +118,6 @@ public class CustomerModel {
             rs.close();
             ps.close();
 
-            // Calculate Total Price from Cart
             double totalPrice = 0;
             String totalSql = "SELECT SUM(c.quantity * p.price) FROM Cart c JOIN Products p ON c.product_id = p.product_id WHERE c.customer_id = ?";
             ps = conn.prepareStatement(totalSql);
@@ -183,16 +134,13 @@ public class CustomerModel {
                 return false; // Cart is empty
             }
 
-            // --- B. Create the Order Record ---
-            // BUSINESS RULE: Order transactions can not be removed once inserted.
-            String insertOrderSql = "INSERT INTO Orders (total_price, status, order_datetime, customer_id, shipping_address_id) VALUES (?, 'Pending', NOW(), ?, ?)";
+            String insertOrderSql = "INSERT INTO Orders (total_price, status, order_datetime, customer_id, shipping_address_id, payment_status) VALUES (?, 'Pending', NOW(), ?, ?, 'Not Paid')";
             ps = conn.prepareStatement(insertOrderSql, Statement.RETURN_GENERATED_KEYS);
             ps.setDouble(1, totalPrice);
             ps.setInt(2, customerId);
             ps.setInt(3, addressId);
             ps.executeUpdate();
 
-            // Get the generated Order ID
             int orderId = 0;
             rs = ps.getGeneratedKeys();
             if (rs.next()) {
@@ -201,7 +149,6 @@ public class CustomerModel {
             rs.close();
             ps.close();
 
-            // --- C. Move Items from Cart to Order_Details & Update Stock ---
             String cartSql = "SELECT c.product_id, c.quantity, p.price FROM Cart c JOIN Products p ON c.product_id = p.product_id WHERE c.customer_id = ?";
             ps = conn.prepareStatement(cartSql);
             ps.setInt(1, customerId);
@@ -236,14 +183,12 @@ public class CustomerModel {
             rs.close();
             ps.close();
 
-            // --- D. Clear the Cart ---
             String deleteCartSql = "DELETE FROM Cart WHERE customer_id = ?";
             ps = conn.prepareStatement(deleteCartSql);
             ps.setInt(1, customerId);
             ps.executeUpdate();
             ps.close();
 
-            // 2. Commit Transaction
             conn.commit();
             return true;
 
@@ -253,11 +198,7 @@ public class CustomerModel {
         }
     }
     
-    /**
-     * NEW: Fetches the customer's order history as a table model.
-     */
     public DefaultTableModel getCustomerOrderHistory(int customerId) throws SQLException {
-        // Fetches essential order data for the "My Orders" view.
         String sql = "SELECT order_id, total_price, status, order_datetime " +
                      "FROM Orders " +
                      "WHERE customer_id = ? " +
@@ -272,12 +213,10 @@ public class CustomerModel {
                 ResultSetMetaData metaData = rs.getMetaData();
                 int columnCount = metaData.getColumnCount();
 
-                // Add column names
                 for (int i = 1; i <= columnCount; i++) {
                     model.addColumn(metaData.getColumnLabel(i));
                 }
 
-                // Add rows
                 while (rs.next()) {
                     Object[] row = new Object[columnCount];
                     for (int i = 0; i < columnCount; i++) {
@@ -291,19 +230,64 @@ public class CustomerModel {
     }
 
     /**
-     * Fetches the customer's profile and address as a formatted String.
+     * FIX: Implements the three-way join (Orders -> Shipping -> Delivery_Info)
+     * to fetch the final customer delivery date (arrival_datetime).
      */
+    public String getCustomerDeliveryDate(int orderId) throws SQLException {
+        String sql = "SELECT di.arrival_datetime " +
+                     "FROM Orders o " +
+                     "JOIN Shipping s ON o.order_id = s.order_id " +
+                     "JOIN Delivery_Info di ON s.delivery_id = di.delivery_id " +
+                     "WHERE o.order_id = ? AND di.status = 'Complete'";
+        
+        try (Connection conn = db.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            
+            ps.setInt(1, orderId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    Timestamp ts = rs.getTimestamp("arrival_datetime");
+                    return ts != null ? ts.toString().split("\\.")[0] : null; 
+                }
+            }
+        }
+        return null; 
+    }
+
+    /**
+     * Checks if the order is past the 7-day return deadline based on the fixed database structure.
+     */
+    public boolean isPastReturnDeadline(int orderId) throws SQLException {
+        String deliveryDateStr = getCustomerDeliveryDate(orderId);
+        
+        if (deliveryDateStr == null) {
+            return true; 
+        }
+        
+        try {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            LocalDateTime deliveryDateTime = LocalDateTime.parse(deliveryDateStr, formatter);
+                                            
+            LocalDateTime returnDeadline = deliveryDateTime.plusDays(7);
+            
+            return LocalDateTime.now().isAfter(returnDeadline);
+        } catch (DateTimeParseException e) {
+            System.err.println("Error parsing date: " + deliveryDateStr);
+            e.printStackTrace();
+            return true; 
+        }
+    }
+
     public String getCustomerProfile(int customerId) {
         StringBuilder sb = new StringBuilder();
-        // Join Customers and Addresses tables to get full info
+        
         String sql = "SELECT c.first_name, c.last_name, c.email, c.phone_number, " +
                      "a.street, a.city, a.zip_code " +
                      "FROM Customers c " +
                      "JOIN Addresses a ON c.address_id = a.address_id " +
                      "WHERE c.customer_id = ?";
         
-        try (Connection conn = db.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setInt(1, customerId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {

@@ -19,6 +19,7 @@ public class CustomerView extends JFrame {
     private JButton addToCartButton;
     private JButton viewProfileButton;
     private JButton viewOrdersButton; 
+    private JButton returnToLoginButton; 
 
     public CustomerView() {
         super("JHardware - Customer");
@@ -35,7 +36,7 @@ public class CustomerView extends JFrame {
     
     public void init() {
         
-        // FIX: Use an anonymous DefaultTableModel subclass to make the table non-editable,
+        // FIX: Use an anonymous JTable subclass to make the table non-editable,
         // while ensuring the component itself remains enabled for selection.
         productTable = new JTable() {
             @Override
@@ -49,29 +50,43 @@ public class CustomerView extends JFrame {
         
         JScrollPane scrollPane = new JScrollPane(productTable);
         
-        // Add the product list table to the center of the frame
         add(scrollPane, BorderLayout.CENTER);
         
         
-        // Set up the North Panel for buttons
-        JPanel northPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        // --- NEW NAVIGATION STRUCTURE (Far Right Logout) ---
+        
+        // Main container for navigation buttons (BorderLayout allows left/right separation)
+        JPanel northContainer = new JPanel(new BorderLayout());
+
+        // Panel for LEFT-ALIGNED buttons
+        JPanel leftNavPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        
+        // Panel for RIGHT-ALIGNED buttons (Logout)
+        JPanel rightLogoutPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        
         viewCartButton = new JButton("View Cart");
         addToCartButton = new JButton("Add Selected to Cart");
         viewProfileButton = new JButton("My Profile");
         viewOrdersButton = new JButton("My Orders"); 
         
-        northPanel.add(viewCartButton);
-        northPanel.add(addToCartButton);
-        northPanel.add(viewProfileButton);
-        northPanel.add(viewOrdersButton); 
+        returnToLoginButton = new JButton("Return to Login"); 
         
-        add(northPanel, BorderLayout.NORTH);
+        // Add buttons to LEFT panel
+        leftNavPanel.add(viewCartButton);
+        leftNavPanel.add(addToCartButton);
+        leftNavPanel.add(viewProfileButton);
+        leftNavPanel.add(viewOrdersButton); 
+        
+        // Add button to RIGHT panel
+        rightLogoutPanel.add(returnToLoginButton);
+        
+        // Add the two sub-panels to the main North container
+        northContainer.add(leftNavPanel, BorderLayout.WEST); 
+        northContainer.add(rightLogoutPanel, BorderLayout.EAST);
+        
+        add(northContainer, BorderLayout.NORTH);
     }
     
-    // ----------------------------------------------------
-    // METHODS REQUIRED BY CustomerController
-    // ----------------------------------------------------
-
     public void setProductTableModel(DefaultTableModel model) {
         productTable.setModel(model);
     }
@@ -117,6 +132,10 @@ public class CustomerView extends JFrame {
     
     public void setViewOrdersAction(ActionListener listener) {
         if (viewOrdersButton != null) viewOrdersButton.addActionListener(listener);
+    }
+    
+    public void setReturnToLoginAction(ActionListener listener) {
+        if (returnToLoginButton != null) returnToLoginButton.addActionListener(listener);
     }
     
 }

@@ -26,23 +26,22 @@ CREATE TABLE Vehicles(
 	vehicle_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     plate_number VARCHAR(20) NOT NULL,
     type ENUM('Car', 'Motor', 'Truck'),
-    status ENUM('Available', 'Occupied'),
-    active_status ENUM('Active', 'Inactive') NOT NULL
+    status ENUM('Available', 'Occupied')
 ) AUTO_INCREMENT = 9000;
 
-INSERT INTO Vehicles (plate_number, type, status, active_status)
+INSERT INTO Vehicles (plate_number, type, status)
 VALUES
-    ('ABC123', 'Car', 'Available', 'Active'),
-    ('XYZ789', 'Motor', 'Available', 'Active'),
-    ('TRK456', 'Truck', 'Available', 'Active'),
-    ('MTR321', 'Motor', 'Available', 'Active'),
-    ('CAR654', 'Car', 'Available', 'Active'),
-    ('TRK987', 'Truck', 'Available', 'Active'),
-    ('MTR159', 'Motor', 'Available', 'Active'),
-    ('CAR753', 'Car', 'Available', 'Active'),
-    ('TRK852', 'Truck', 'Available', 'Active'),
-    ('CAR951', 'Car', 'Available', 'Active'),
-    ('MTR357', 'Motor', 'Available', 'Active');
+    ('ABC123', 'Car', 'Available'),
+    ('XYZ789', 'Motor', 'Available'),
+    ('TRK456', 'Truck', 'Available'),
+    ('MTR321', 'Motor', 'Available'),
+    ('CAR654', 'Car', 'Available'),
+    ('TRK987', 'Truck', 'Available'),
+    ('MTR159', 'Motor', 'Available'),
+    ('CAR753', 'Car', 'Available'),
+    ('TRK852', 'Truck', 'Available'),
+    ('CAR951', 'Car', 'Available'),
+    ('MTR357', 'Motor', 'Available');
 
 CREATE TABLE Delivery_Info(
 	delivery_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -91,21 +90,20 @@ CREATE TABLE Suppliers(
     phone_number VARCHAR(11) NOT NULL,
     email VARCHAR(50) UNIQUE,
     address_id INT NOT NULL,
-    status ENUM('Active', 'Inactive')  NOT NULL, 
     CONSTRAINT supplies_fk_addresses FOREIGN KEY (address_id) REFERENCES Addresses(address_id)
 ) AUTO_INCREMENT = 10010;
 
-INSERT INTO Suppliers (company_name, phone_number, email, address_id, status)
+INSERT INTO Suppliers (company_name, phone_number, email, address_id)
 VALUES
-	('AMD Authorized Distributor', '09171234567', 'sales@amdpartners.com', 20001, 'Active'),
-	('Intel Technology Supplier', '09181234567', 'info@intel-supplier.com', 20002, 'Active'),
-	('Corsair & G.SKILL Memory Distributors', '09192345678', 'contact@memorydist.com', 20003, 'Active'),
-	('Gigabyte Authorized Partner', '09203456789', 'support@gigabytepartner.com', 20004, 'Active'),
-	('ASUS Component Supplier', '09214567890', 'sales@asusparts.com', 20005, 'Active'),
-	('ASRock and MSI Suppliers', '09225678901', 'orders@msisupplier.com', 20006, 'Active'),
-	('Samsung Storage Solutions', '09236789012', 'samsung@storagesol.com', 20007, 'Active'),
-	('Seagate Technology Partner', '09247890123', 'service@seagatepartner.com', 20008, 'Active'),
-	('Crucial Memory Supplier', '09258901234', 'sales@crucialdist.com', 20009, 'Active');
+	('AMD Authorized Distributor', '09171234567', 'sales@amdpartners.com', 20001),
+	('Intel Technology Supplier', '09181234567', 'info@intel-supplier.com', 20002),
+	('Corsair & G.SKILL Memory Distributors', '09192345678', 'contact@memorydist.com', 20003),
+	('Gigabyte Authorized Partner', '09203456789', 'support@gigabytepartner.com', 20004),
+	('ASUS Component Supplier', '09214567890', 'sales@asusparts.com', 20005),
+	('ASRock and MSI Suppliers', '09225678901', 'orders@msisupplier.com', 20006),
+	('Samsung Storage Solutions', '09236789012', 'samsung@storagesol.com', 20007),
+	('Seagate Technology Partner', '09247890123', 'service@seagatepartner.com', 20008),
+	('Crucial Memory Supplier', '09258901234', 'sales@crucialdist.com', 20009);
 
 CREATE TABLE Products (
     product_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -115,7 +113,7 @@ CREATE TABLE Products (
     price DECIMAL(10,2) NOT NULL,
     quantity INT NOT NULL,
     category ENUM('CPU','GPU','Motherboard','Memory (RAM)', 'Storage Device'),
-    status ENUM('Active', 'Inactive')  NOT NULL
+    status ENUM('Active', 'Inactive')
 ) AUTO_INCREMENT = 1001;
 
 INSERT INTO Products (name, description, brand, price, quantity, category, status)
@@ -166,14 +164,13 @@ CREATE TABLE Customers (
     phone_number VARCHAR(11) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL, 
     address_id INT NOT NULL,
-    status ENUM('Active', 'Inactive')  NOT NULL,
     CONSTRAINT customers_fk_addresses FOREIGN KEY (address_id) REFERENCES Addresses(address_id)
 ) AUTO_INCREMENT = 6001;
 
-INSERT INTO Customers (first_name, last_name, email, phone_number, password, address_id, status)
+INSERT INTO Customers (first_name, last_name, email, phone_number, password, address_id)
 VALUES
-	('Allysa', 'Chong', 'allysa_chong@gmail.com', '09123456789', 'RandomPass', 20010, 'Active'),
-    ('Fiona', 'Maningas', 'fiona_maningas@gmail.com', '09173456789', 'PassPass', 20011, 'Active');
+	('Allysa', 'Chong', 'allysa_chong@gmail.com', '09123456789', 'RandomPass', 20010),
+    ('Fiona', 'Maningas', 'fiona_maningas@gmail.com', '09173456789', 'PassPass', 20011);
 
 CREATE TABLE Cart(
 	cart_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -222,7 +219,7 @@ CREATE TABLE Order_Details(
     CONSTRAINT orderdetails_fk_orders FOREIGN KEY (order_id) REFERENCES Orders(order_id)
 ) AUTO_INCREMENT = 3000;
 
--- INSERT Order_Details for the 12 orders (3000 to 3018)
+-- INSERT Order_Details for the 12 new orders (3000 to 3018)
 INSERT INTO Order_Details (quantity, unit_price, product_id, order_id)
 VALUES
     -- Order 7000 (Total: 14649.00)
@@ -280,7 +277,7 @@ CREATE TABLE Shipping(
     CONSTRAINT shipping_fk_delivery_info FOREIGN KEY (delivery_id) REFERENCES Delivery_Info(delivery_id)
 ) AUTO_INCREMENT = 2000;
 
--- INSERT Shipping records for the 12 orders (2000 to 2011)
+-- INSERT Shipping records for the 12 new completed orders (2000 to 2011)
 INSERT INTO Shipping (order_id, delivery_id)
 VALUES
     (7000, 8012), 
@@ -308,7 +305,7 @@ CREATE TABLE Returns (
 
 -- VIEWS --
 CREATE VIEW admin_product AS
-SELECT product_id AS id, name, description, brand, FORMAT(price, 2) AS price, quantity, category, status
+SELECT product_id AS id, name, description, brand, FORMAT(price, 2) AS price, quantity, category
 FROM Products
 ORDER BY product_id;
     

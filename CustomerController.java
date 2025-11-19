@@ -6,6 +6,9 @@ import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
 import java.sql.SQLException;
 import java.awt.FlowLayout;
+import java.awt.BorderLayout;
+import javax.swing.BorderFactory;
+import javax.swing.JTextArea;
 
 
 public class CustomerController {
@@ -34,7 +37,9 @@ public class CustomerController {
         // 2. Set up action listeners
         view.setAddToCartAction(e -> handleAddToCart());
         view.setViewCartAction(e -> handleViewCart());
-        view.setViewProfileAction(e -> handleViewProfile()); 
+        view.setViewProfileAction(e -> handleViewProfile());
+        // FIX: Hook the "My Orders" button action listener
+        view.setViewOrdersAction(e -> handleViewOrders()); 
     }
 
 
@@ -43,7 +48,6 @@ public class CustomerController {
             
             DefaultTableModel productsModel = model.getAllProducts(); 
             
-            // We'll update the view to have this method
             view.setProductTableModel(productsModel); 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -52,22 +56,15 @@ public class CustomerController {
     }
 
 
-    /**
-     * Action for the "View Cart" button.
-     * Displays the cart in a popup and allows the user to Checkout or Remove items.
-     */
     private void handleViewCart() {
         try {
-            // 1. Get the data from the model
             DefaultTableModel cartModel = model.getCartItems(this.customerId);
             
-            // 2. Check if empty
             if (cartModel.getRowCount() == 0) {
                 JOptionPane.showMessageDialog(view, "Your cart is empty!", "Cart", JOptionPane.INFORMATION_MESSAGE);
                 return;
             }
 
-            // 3. Create a read-only table for the popup
             JTable cartTable = new JTable(cartModel);
             
             // HIDE the product_id column (first column, index 0)
@@ -75,21 +72,16 @@ public class CustomerController {
             cartTable.getColumnModel().getColumn(0).setMaxWidth(0);
             cartTable.getColumnModel().getColumn(0).setWidth(0);
             
-            // 4. Create UI components for the dialog
             JPanel panel = new JPanel(new java.awt.BorderLayout());
             panel.add(new JScrollPane(cartTable), java.awt.BorderLayout.CENTER);
             
-            // Button Panel (South)
-            // FIX: Changed FlowLayout.RIGHT to FlowLayout.CENTER to center the buttons
+            // Button Panel (South) - Centered buttons for checkout/remove
             JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
             
-            // Create buttons
             JButton checkoutBtn = new JButton("Checkout / Place Order");
             JButton removeBtn = new JButton("Remove Selected Item");
             
-            // 5. Add Button Listeners
-            
-            // --- REMOVE ACTION ---
+            // --- REMOVE ACTION (Decrement Quantity) ---
             removeBtn.addActionListener(e -> {
                 int selectedRow = cartTable.getSelectedRow();
                 if (selectedRow == -1) {
@@ -99,22 +91,21 @@ public class CustomerController {
                 
                 // Get the Product ID from the hidden first column (index 0)
                 int productIdToRemove = (int) cartTable.getValueAt(selectedRow, 0); 
-                String productName = (String) cartTable.getValueAt(selectedRow, 1); // Get name for confirmation
+                String productName = (String) cartTable.getValueAt(selectedRow, 1);
                 
                 int confirm = JOptionPane.showConfirmDialog(view, 
-                        "Are you sure you want to remove " + productName + " from your cart?", 
+                        "Remove one unit of " + productName + "?", 
                         "Confirm Removal", 
                         JOptionPane.YES_NO_OPTION);
                 
                 if (confirm == JOptionPane.YES_OPTION) {
-                    if (model.removeFromCart(this.customerId, productIdToRemove)) {
-                        JOptionPane.showMessageDialog(view, productName + " removed successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                    // Calls the model method that decrements quantity
+                    if (model.decrementCartQuantity(this.customerId, productIdToRemove)) {
+                        JOptionPane.showMessageDialog(view, "Unit of " + productName + " removed!", "Success", JOptionPane.INFORMATION_MESSAGE);
                         
-                        // IMPORTANT: Manually close the existing dialog
+                        // Close and re-open the cart dialog to show the refreshed state
                         java.awt.Window w = javax.swing.SwingUtilities.getWindowAncestor(removeBtn);
                         if (w != null) w.setVisible(false);
-                        
-                        // Re-open the cart dialog to show the refreshed state
                         handleViewCart();
                     } else {
                         JOptionPane.showMessageDialog(view, "Failed to remove item. Database error.", "Error", JOptionPane.ERROR_MESSAGE);
@@ -122,7 +113,7 @@ public class CustomerController {
                 }
             });
             
-            // --- CHECKOUT ACTION (Logic retained) ---
+            // --- CHECKOUT ACTION ---
             checkoutBtn.addActionListener(e -> {
                 int confirm = JOptionPane.showConfirmDialog(view, 
                         "Are you sure you want to place this order?", 
@@ -143,13 +134,11 @@ public class CustomerController {
                 }
             });
             
-            // 6. Assemble the button panel
             buttonPanel.add(removeBtn);
             buttonPanel.add(checkoutBtn);
             
             panel.add(buttonPanel, java.awt.BorderLayout.SOUTH);
 
-            // 7. Show the popup
             JOptionPane.showMessageDialog(view, panel, "Your Shopping Cart", JOptionPane.PLAIN_MESSAGE);
             
         } catch (SQLException e) {
@@ -158,7 +147,123 @@ public class CustomerController {
         }
     }
     
+    // Handler for the "My Profile" button
+    private void handleViewProfile() {
+        try {
+            // 1. Get Profile Details
+            String profileDetails = model.getCustomerProfile(this.customerId);
+            
+            // 2. Assemble the view
+            JTextArea profileArea = new JTextArea(profileDetails);
+            profileArea.setEditable(false);
+            
+            // 3. Display the popup
+            JOptionPane.showMessageDialog(
+                view, 
+                new JScrollPane(profileArea), 
+                "My Profile (ID: " + this.customerId + ")", 
+                JOptionPane.INFORMATION_MESSAGE
+            );
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(view, "Error loading customer details: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
     
+    // Handler for the "My Orders" button (Includes Return Logic)
+    private void handleViewOrders() {
+        try {
+            // 1. Get Order History Data
+            DefaultTableModel orderHistoryModel = model.getCustomerOrderHistory(this.customerId);
+            
+            if (orderHistoryModel.getRowCount() == 0) {
+                JOptionPane.showMessageDialog(view, "You have no past orders.", "Order History", JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+
+            // Table Setup
+            JTable orderTable = new JTable(orderHistoryModel);
+            orderTable.setEnabled(true); // Must allow selection for returns
+            orderTable.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+            
+            // 2. Panel Setup
+            JPanel panel = new JPanel(new BorderLayout(10, 10));
+            JScrollPane orderScrollPane = new JScrollPane(orderTable);
+            panel.add(orderScrollPane, BorderLayout.CENTER);
+            
+            // 3. Button Panel (South) - Aligned Right for the single action button
+            JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+            
+            JButton returnOrderButton = new JButton("Initiate Return for Selected Order");
+            
+            // 4. Button Action
+            returnOrderButton.addActionListener(e -> {
+                int selectedRow = orderTable.getSelectedRow();
+                if (selectedRow == -1) {
+                    JOptionPane.showMessageDialog(view, "Please select an order from the table first.", "Selection Required", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+                
+                // Order ID is assumed to be the first column (index 0)
+                int orderId = (int) orderTable.getValueAt(selectedRow, 0); 
+                // Status is assumed to be the third column (index 2)
+                String status = (String) orderTable.getValueAt(selectedRow, 2); 
+                
+                // BUSINESS RULE CHECK: Must be 'Completed' to return
+                if (!"Completed".equalsIgnoreCase(status)) {
+                    JOptionPane.showMessageDialog(view, 
+                        "Order ID " + orderId + " cannot be returned. Status must be 'Completed'. (Current: " + status + ").", 
+                        "Return Denied", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                
+                // Proceed to detailed return checks (7-day rule implementation is handled here)
+                handleReturnCheck(orderId);
+            });
+            
+            // Add only the primary action button to the panel
+            buttonPanel.add(returnOrderButton);
+            panel.add(buttonPanel, BorderLayout.SOUTH);
+            
+            // 5. Display the popup
+            JOptionPane.showMessageDialog(
+                view, 
+                panel, 
+                "My Orders (" + orderHistoryModel.getRowCount() + " found)", 
+                JOptionPane.PLAIN_MESSAGE
+            );
+            
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(view, "Error loading order history: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    // Helper method for the final, detailed return check (placeholder for 7-day rule)
+    private void handleReturnCheck(int orderId) {
+        // NOTE: The 7-day rule check requires fetching the final customer arrival date 
+        // which is a missing link in the current database design.
+        
+        // --- Placeholder for Date Check Logic ---
+        // if (model.isPastReturnDeadline(orderId)) {
+        //      JOptionPane.showMessageDialog(view, "Return window closed. Deadline expired 7 days after delivery.", "Return Denied", JOptionPane.ERROR_MESSAGE);
+        //      return;
+        // }
+        
+        // --- Final Confirmation ---
+        int confirm = JOptionPane.showConfirmDialog(view, 
+            "Order ID " + orderId + " is eligible for return.\nDo you wish to proceed?", 
+            "Confirm Return", 
+            JOptionPane.YES_NO_OPTION);
+            
+        if (confirm == JOptionPane.YES_OPTION) {
+            // Implement model.processReturn(orderId); here (Missing feature)
+            JOptionPane.showMessageDialog(view, "Return processing initiated for Order ID " + orderId + ". (Model logic to create the transaction needs to be implemented.)", "Return Started", JOptionPane.INFORMATION_MESSAGE);
+        }
+    }
+
+
     private void handleAddToCart() {
         
         int selectedProductId = view.getSelectedProductId();
@@ -172,21 +277,9 @@ public class CustomerController {
         int quantity = 1; 
         
         if (model.addToCart(this.customerId, selectedProductId, quantity)) {
-            JOptionPane.showMessageDialog(view, "Item added to cart!");
+            JOptionPane.showMessageDialog(view, "Item added to cart! (Quantity +1)", "Success", JOptionPane.INFORMATION_MESSAGE);
         } else {
             JOptionPane.showMessageDialog(view, "Failed to add item. It might already be in your cart.", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
-    
-    
-    private void handleViewProfile() {
-        String profileInfo = model.getCustomerProfile(this.customerId);
-        
-        if (profileInfo.isEmpty()) {
-             JOptionPane.showMessageDialog(view, "Could not load profile.", "Error", JOptionPane.ERROR_MESSAGE);
-        } else {
-             JOptionPane.showMessageDialog(view, profileInfo, "My Profile", JOptionPane.INFORMATION_MESSAGE);
-        }
-    }
-
 }

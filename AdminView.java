@@ -19,8 +19,7 @@ public class AdminView extends JFrame {
     private JButton viewOrdersButton;
     private JButton viewSupplierShipmentButton;
     private JButton viewReportsButton;
-    // NEW: Logout button field
-    private JButton returnToLoginButton; 
+    private JButton viewReturnButton;
     
     //update product
     private JTextField productIdField;
@@ -118,40 +117,25 @@ public class AdminView extends JFrame {
         northLabel.setFont(new Font("Veranda", Font.BOLD, 30));
         northPanel.add(northLabel, BorderLayout.CENTER);
 
-        // --- NEW NAVIGATION STRUCTURE (Split Left/Right) ---
+        JPanel navPanel = new JPanel(new FlowLayout());
+        navPanel.setBackground(Color.BLACK);
         
-        // Main container for navigation buttons (BorderLayout allows left/right separation)
-        JPanel navContainer = new JPanel(new BorderLayout());
-        navContainer.setBackground(Color.BLACK);
-
-        // 1. LEFT Panel: All the navigational buttons (FlowLayout)
-        JPanel leftNavPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        leftNavPanel.setBackground(Color.BLACK);
-        
-        // 2. RIGHT Panel: Only the Logout button (FlowLayout)
-        JPanel rightLogoutPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        rightLogoutPanel.setBackground(Color.BLACK);
-        
-        // Initialize Buttons
         viewProductsButton = new JButton("View Products");
         viewOrdersButton = new JButton("View Orders");
         viewSuppliersButton = new JButton("View Suppliers");
         viewVehiclesButton = new JButton("View Vehicles");
         viewSupplierShipmentButton = new JButton("View Supplier Shipments");
         viewReportsButton = new JButton("Sales Report");
-        returnToLoginButton = new JButton("Return to Login"); // FIX: Initialized here
         
-        // Button Colors
         viewProductsButton.setBackground(Color.decode("#ADD1DB"));
         viewOrdersButton.setBackground(Color.decode("#ADD1DB"));
         viewSuppliersButton.setBackground(Color.decode("#ADD1DB"));
         viewVehiclesButton.setBackground(Color.decode("#ADD1DB"));
         viewSupplierShipmentButton.setBackground(Color.decode("#ADD1DB"));
         viewReportsButton.setBackground(Color.decode("#ADD1DB"));
-        returnToLoginButton.setBackground(Color.decode("#E0A8A8")); 
         
         
-        //FOR SALES REPORT LABELS
+        //FOR SALES REPORT
         this.monthResult = new JLabel("N/A");
         this.yearResult = new JLabel("N/A");
         this.totalRevenueResult = new JLabel("N/A");
@@ -161,23 +145,15 @@ public class AdminView extends JFrame {
         this.yearResult.setForeground(Color.WHITE);
         this.totalRevenueResult.setForeground(Color.WHITE);
         this.totalOrderResult.setForeground(Color.WHITE);
+        ;
+        navPanel.add(viewProductsButton);
+        navPanel.add(viewSuppliersButton);
+        navPanel.add(viewVehiclesButton);
+        navPanel.add(viewOrdersButton);
+        navPanel.add(viewSupplierShipmentButton);
+        navPanel.add(viewReportsButton);
         
-        // Add buttons to LEFT panel
-        leftNavPanel.add(viewProductsButton);
-        leftNavPanel.add(viewSuppliersButton);
-        leftNavPanel.add(viewVehiclesButton);
-        leftNavPanel.add(viewOrdersButton);
-        leftNavPanel.add(viewSupplierShipmentButton);
-        leftNavPanel.add(viewReportsButton);
-        
-        // Add button to RIGHT panel
-        rightLogoutPanel.add(returnToLoginButton);
-        
-        // Assemble navContainer
-        navContainer.add(leftNavPanel, BorderLayout.WEST);
-        navContainer.add(rightLogoutPanel, BorderLayout.EAST);
-        
-        northPanel.add(navContainer, BorderLayout.SOUTH); 
+        northPanel.add(navPanel, BorderLayout.SOUTH);
         
         this.add(northPanel, BorderLayout.NORTH);
         
@@ -213,12 +189,19 @@ public class AdminView extends JFrame {
     public void displayTableData(DefaultTableModel model) {
 
     	centerPanel.removeAll();
-    	centerPanel.setBackground(Color.GRAY);
-    	JTable table = new JTable(model);
-    	JScrollPane scrollPane = new JScrollPane(table);
-    	centerPanel.add(scrollPane, BorderLayout.CENTER);
+        centerPanel.setBackground(Color.GRAY);
+        
+        JTable table = new JTable(model);
+       
+        table.setFillsViewportHeight(true); 
+        
+        JScrollPane scrollPane = new JScrollPane(table);
+        centerPanel.add(scrollPane, BorderLayout.CENTER);
 
-    	refreshFrame();
+        centerPanel.revalidate();
+        centerPanel.repaint();
+        
+        refreshFrame();
 
     }
     
@@ -237,6 +220,15 @@ public class AdminView extends JFrame {
         }
         refreshFrame();
     }
+//    	}
+//    	else if ("REFUNDS".equals(reportType)) {
+//    		contentPanel = //addPanel()
+//    	}
+//    	else if ("INVENTORY".equals(reportType)) {
+//    		contentPanel = //addPanel()
+//    	}
+//    	else if ("TOP5".equals(reportType)) {
+//    		contentPanel = //addPanel()
     
     public JPanel createProductPanel() {
     	JPanel panel = new JPanel();
@@ -298,6 +290,15 @@ public class AdminView extends JFrame {
         panel.add(createReportInputPanel());
         panel.add(Box.createVerticalGlue());
         
+        return panel;
+    }
+    
+    public JPanel createReturnPanel() {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBackground(Color.DARK_GRAY);
+        panel.add(createNewReturnPanel());
+        panel.add(Box.createVerticalGlue());
         return panel;
     }
     
@@ -635,6 +636,56 @@ public class AdminView extends JFrame {
         return panel;
     }
     
+    private JPanel createNewReturnPanel() {
+        returnOrderDetailIdField = new JTextField(15);
+        returnQuantityField = new JTextField(15);
+        returnReasonField = new JTextField(15);
+        returnResellableCheckbox = new JCheckBox("Resellable?");
+        returnResellableCheckbox.setBackground(Color.GRAY.darker());
+        returnResellableCheckbox.setForeground(Color.WHITE);
+
+        JPanel panel = createEastPanel(" Process Product Return ");
+        
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        JLabel idLabel = new JLabel("Order Detail ID:");
+        JLabel qtyLabel = new JLabel("Quantity:");
+        JLabel reasonLabel = new JLabel("Reason:");
+        JLabel resellLabel = new JLabel("Inventory Action:");
+
+        idLabel.setForeground(Color.WHITE);
+        qtyLabel.setForeground(Color.WHITE);
+        reasonLabel.setForeground(Color.WHITE);
+        resellLabel.setForeground(Color.WHITE);
+        
+        processReturnButton.setBackground(Color.decode("#ADD1DB"));
+
+        gbc.gridx = 0; gbc.gridy = 0; panel.add(idLabel, gbc);
+        gbc.gridx = 1; gbc.gridy = 0; panel.add(returnOrderDetailIdField, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 1; panel.add(qtyLabel, gbc);
+        gbc.gridx = 1; gbc.gridy = 1; panel.add(returnQuantityField, gbc);
+        
+        gbc.gridx = 0; gbc.gridy = 2; panel.add(reasonLabel, gbc);
+        gbc.gridx = 1; gbc.gridy = 2; panel.add(returnReasonField, gbc);
+        
+        gbc.gridx = 0; gbc.gridy = 3; panel.add(resellLabel, gbc);
+        gbc.gridx = 1; gbc.gridy = 3; panel.add(returnResellableCheckbox, gbc);
+
+        gbc.gridx = 1; gbc.gridy = 4; gbc.anchor = GridBagConstraints.EAST;
+        panel.add(processReturnButton, gbc);
+        
+        return panel;
+    }
+    
+    
+    public void setViewReturnsAction(ActionListener listener) {
+        if (viewReturnsButton != null) {
+            viewReturnsButton.addActionListener(listener);
+        }
+    }
    
     /*private JPanel createNewSupplierPanel()*/
     
@@ -644,6 +695,8 @@ public class AdminView extends JFrame {
         orderIdField = new JTextField(15);
         String[] statuses = {"Pending", "Shipping", "Completed", "Returned"};
         newStatusOptions = new JComboBox<>(statuses); 
+        
+        vehicleSelectionDropdown = new JComboBox<>();
                 
         JPanel panel = createEastPanel(" Update Order Status ");
         
@@ -653,6 +706,7 @@ public class AdminView extends JFrame {
 
         JLabel idLabel = new JLabel("Order ID:");
         JLabel statusLabel = new JLabel("New Status:");
+        JLabel vehicleLabel = new JLabel("Assign Vehicle:");
         
         idLabel.setForeground(Color.WHITE);
         statusLabel.setForeground(Color.WHITE);
@@ -665,9 +719,13 @@ public class AdminView extends JFrame {
         // Row 2: New Status (ComboBox)
         gbc.gridx = 0; gbc.gridy = 1; panel.add(statusLabel, gbc);
         gbc.gridx = 1; gbc.gridy = 1; panel.add(newStatusOptions, gbc);
+        
+     // Row 3: Vehicle 
+        gbc.gridx = 0; gbc.gridy = 2; panel.add(vehicleLabel, gbc);
+        gbc.gridx = 1; gbc.gridy = 2; panel.add(vehicleSelectionDropdown, gbc);
 
-        // Row 3: Button
-        gbc.gridx = 1; gbc.gridy = 2; gbc.anchor = GridBagConstraints.EAST;
+        // Row 4: Button
+        gbc.gridx = 1; gbc.gridy = 3; gbc.anchor = GridBagConstraints.EAST;
         panel.add(updateStatusButton, gbc);
         
         return panel;
@@ -839,10 +897,6 @@ public class AdminView extends JFrame {
     public void setViewReportsAction(ActionListener listener) {
         if (viewReportsButton != null) viewReportsButton.addActionListener(listener);
     }
-    // FIX: Method signature added
-    public void setReturnToLoginAction(ActionListener listener) {
-        if (returnToLoginButton != null) returnToLoginButton.addActionListener(listener);
-    }
     
     public String getProductIdField() { return productIdField.getText(); }
     public String getUpdateProductFieldDropdown() { return (String) updateProductFieldDropdown.getSelectedItem(); }
@@ -855,13 +909,7 @@ public class AdminView extends JFrame {
     public String getProductNameField() { return productNameField.getText(); }
     public String getProductDescriptionField() { return productDescriptionField.getText(); }
     public String getProductBrandField() { return productBrandField.getText(); }
-    public float getProductPriceField() { 
-        try {
-            return Float.parseFloat(productPriceField.getText()); 
-        } catch (NumberFormatException e) {
-            return -1.0f; // Return sentinel value for controller validation
-        }
-    }
+    public float getProductPriceField() { return Float.parseFloat(productPriceField.getText()); }
     public String getNewProductCategoryDropdown() { return (String) newProductCategoryDropdown.getSelectedItem(); }
     public String getNewProductStatusDropdown() { return (String) newProductStatusDropdown.getSelectedItem(); }
     public void setAddProductAction(ActionListener listener) { addProductButton.addActionListener(listener); }
@@ -906,5 +954,22 @@ public class AdminView extends JFrame {
     public String getVehiclePlate() { return vehiclePlateField.getText(); }
     public String getVehicleType() { return (String) vehicleTypeDropdown.getSelectedItem(); }
     public String getVehicleStatus() { return (String) vehicleStatusDropdown.getSelectedItem(); }
+    
+    public String getReturnOrderDetailId() { return returnOrderDetailIdField.getText(); }
+    public String getReturnQuantity() { return returnQuantityField.getText(); }
+    public String getReturnReason() { return returnReasonField.getText(); }
+    public boolean isReturnResellable() { return returnResellableCheckbox.isSelected(); }
+    public void setProcessReturnAction(ActionListener listener) { processReturnButton.addActionListener(listener); }
+    
+    public void setAvailableVehicles(String[] vehicles) {
+        vehicleSelectionDropdown.removeAllItems();
+        for (String v : vehicles) {
+            vehicleSelectionDropdown.addItem(v);
+        }
+    }
+    
+    public String getSelectedVehicleForOrder() {
+        return (String) vehicleSelectionDropdown.getSelectedItem();
+    }
     
 }

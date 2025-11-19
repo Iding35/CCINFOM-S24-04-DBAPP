@@ -1,7 +1,9 @@
+
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 
 import javax.swing.JOptionPane;
 import javax.swing.table.DefaultTableModel;
@@ -262,6 +264,132 @@ public class AdminModel {
         }
     }
     
+    public String[] getAvailableVehicleList() {
+        ArrayList<String> list = new ArrayList<>();
+        String sql = "SELECT vehicle_id, plate_number FROM Vehicles WHERE status = 'Available'";
+        try (Connection conn = db.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                list.add(rs.getInt("vehicle_id") + " - " + rs.getString("plate_number"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list.toArray(new String[0]);
+    }
+
+    public boolean shipOrder(int orderId, int vehicleId) {
+        // 1. Create Delivery_Info record (Status: Shipping)
+        String sqlDelivery = "INSERT INTO Delivery_Info (vehicle_id, shipping_datetime, status) VALUES (?, NOW(), 'Shipping')";
+        // 2. Create Shipping record linking order and delivery
+        String sqlShipping = "INSERT INTO Shipping (order_id, delivery_id) VALUES (?, ?)";
+        // 3. Update Order status
+        String sqlUpdateOrder = "UPDATE Orders SET status = 'Shipping' WHERE order_id = ?";
+        // 4. Update Vehicle status
+        String sqlUpdateVehicle = "UPDATE Vehicles SET status = 'Occupied' WHERE vehicle_id = ?";
+
+        Connection conn = null;
+        try {
+            conn = db.getConnection();
+            conn.setAutoCommit(false);
+
+            int deliveryId = -1;
+            // Insert Delivery_Info
+            try (PreparedStatement stmt = conn.prepareStatement(sqlDelivery, Statement.RETURN_GENERATED_KEYS)) {
+                stmt.setInt(1, vehicleId);
+                stmt.executeUpdate();
+                try (ResultSet rs = stmt.getGeneratedKeys()) {
+                    if (rs.next()) deliveryId = rs.getInt(1);
+                    else throw new SQLException("Failed to create delivery record");
+                }
+            }
+
+            // Insert Shipping
+            try (PreparedStatement stmt = conn.prepareStatement(sqlShipping)) {
+                stmt.setInt(1, orderId);
+                stmt.setInt(2, deliveryId);
+                stmt.executeUpdate();
+            }
+
+            // Update Order
+            try (PreparedStatement stmt = conn.prepareStatement(sqlUpdateOrder)) {
+                stmt.setInt(1, orderId);
+                stmt.executeUpdate();
+            }
+
+            // Update Vehicle
+            try (PreparedStatement stmt = conn.prepareStatement(sqlUpdateVehicle)) {
+                stmt.setInt(1, vehicleId);
+                stmt.executeUpdate();
+            }
+
+            conn.commit();
+            return true;
+        } catch (SQLException e) {
+            if (conn != null) try { conn.rollback(); } catch (SQLException ex) { ex.printStackTrace(); }
+            e.printStackTrace();
+            return false;
+        } finally {
+            if (conn != null) try { conn.setAutoCommit(true); conn.close(); } catch (SQLException e) { e.printStackTrace(); }
+        }
+    }
+
+    public boolean completeOrder(int orderId) {
+        String sqlGetIds = "SELECT d.delivery_id, d.vehicle_id FROM Shipping s " +
+                           "JOIN Delivery_Info d ON s.delivery_id = d.delivery_id " +
+                           "WHERE s.order_id = ?";
+        String sqlUpdateOrder = "UPDATE Orders SET status = 'Completed' WHERE order_id = ?";
+        String sqlUpdateDelivery = "UPDATE Delivery_Info SET arrival_datetime = NOW(), status = 'Complete' WHERE delivery_id = ?";
+        String sqlUpdateVehicle = "UPDATE Vehicles SET status = 'Available' WHERE vehicle_id = ?";
+
+        Connection conn = null;
+        try {
+            conn = db.getConnection();
+            conn.setAutoCommit(false);
+
+            int deliveryId = -1;
+            int vehicleId = -1;
+
+            try (PreparedStatement stmt = conn.prepareStatement(sqlGetIds)) {
+                stmt.setInt(1, orderId);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        deliveryId = rs.getInt("delivery_id");
+                        vehicleId = rs.getInt("vehicle_id");
+                    } else {
+                        throw new SQLException("Shipping record not found for Order ID: " + orderId);
+                    }
+                }
+            }
+
+            try (PreparedStatement stmt = conn.prepareStatement(sqlUpdateOrder)) {
+                stmt.setInt(1, orderId);
+                stmt.executeUpdate();
+            }
+
+            try (PreparedStatement stmt = conn.prepareStatement(sqlUpdateDelivery)) {
+                stmt.setInt(1, deliveryId);
+                stmt.executeUpdate();
+            }
+
+            try (PreparedStatement stmt = conn.prepareStatement(sqlUpdateVehicle)) {
+                stmt.setInt(1, vehicleId);
+                stmt.executeUpdate();
+            }
+
+            conn.commit();
+            return true;
+        } catch (SQLException e) {
+            if (conn != null) try { conn.rollback(); } catch (SQLException ex) { ex.printStackTrace(); }
+            JOptionPane.showMessageDialog(null, "Error completing order: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        } finally {
+            if (conn != null) try { conn.setAutoCommit(true); conn.close(); } catch (SQLException e) { e.printStackTrace(); }
+        }
+    }
+    
     public boolean restockShippment(int productID, int supplierID, int vehicleID, int quantity, int cost, String shippingDateTime) {
     	String sqlInsertDeliveryInfo = "INSERT INTO Delivery_Info (vehicle_id, shipping_datetime, arrival_datetime, status)\r\n"
     			+ "VALUES"
@@ -338,6 +466,171 @@ public class AdminModel {
     	}
     	return false;
     }
+    
+    public boolean isDeliveryComplete(int supplierShipmentID) {
+        String sql = "SELECT di.status " 
+                + "FROM delivery_info di "
+                + "JOIN supplier_shipment ss "
+                + "ON di.delivery_id = ss.delivery_id "
+                + "WHERE ss.supplier_shipment_id = ?;";
+        
+        try (Connection conn = db.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, supplierShipmentID);
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    String status = rs.getString("status"); 
+                    return "Complete".equalsIgnoreCase(status); 
+                } else {
+                    return false; 
+                }
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, "Database error: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+    }
+    
+    public boolean restockArrivalUpdate(int supplierShipmentID, String arrivalDateTime) {
+    	String sqlSupplierShipment = "SELECT ss.delivery_id, ss.product_id, ss.quantity, di.vehicle_id\r\n"
+    			+ "FROM Supplier_Shipment ss\r\n"
+    			+ "JOIN Delivery_Info di\r\n"
+    			+ "ON di.delivery_id = ss.delivery_id\r\n"
+    			+ "WHERE supplier_shipment_id = ?";
+    	    	
+    	String sqlDelivery = "UPDATE Delivery_Info \r\n"
+    			+ "SET arrival_datetime = ?, status = 'Complete'\r\n"
+    			+ "WHERE delivery_id = ?";
+    	
+    	String sqlUpdateProductStocks = "UPDATE Products \r\n"
+    			+ "SET quantity = quantity + ? \r\n"
+    			+ "WHERE product_id = ?";
+    	
+    	String sqlUpdateVehicle = "UPDATE Vehicles\r\n"
+    			+ "SET status = 'Available'\r\n"
+    			+ "WHERE vehicle_id = ?";
+        
+        String sqlCheckDate = "SELECT shipping_datetime FROM Delivery_Info WHERE delivery_id = ?";
+    	
+    	int deliveryInfoID = -1;
+    	int productID = -1;
+    	int quantity = 0;
+    	int vehicleID = -1;
+    	
+    	try(Connection conn = db.getConnection()){
+    		conn.setAutoCommit(false);
+    		
+    		try(PreparedStatement stmtSupplier = conn.prepareStatement(sqlSupplierShipment)){
+                stmtSupplier.setInt(1, supplierShipmentID);
+        		try(ResultSet rs = stmtSupplier.executeQuery()){
+        			if(rs.next()) {
+        				deliveryInfoID = rs.getInt("delivery_id");
+        				productID = rs.getInt("product_id");
+        				quantity = rs.getInt("quantity");
+        				vehicleID = rs.getInt("vehicle_id");
+        			}
+        			else {
+        				conn.rollback();
+        				System.err.println("Failed to retrieve shipment details for supplier_shipment_id: " + supplierShipmentID);
+        				return false;
+        			}
+        		}
+    		}
+    		
+            try(PreparedStatement checkStmt = conn.prepareStatement(sqlCheckDate)){
+                checkStmt.setInt(1, deliveryInfoID);
+                ResultSet rsDate = checkStmt.executeQuery();
+                if (rsDate.next()) {
+                    Timestamp shippingTs = rsDate.getTimestamp("shipping_datetime");
+                    if (shippingTs != null) { // Should not be null, but safe check
+                        LocalDateTime shippingDate = shippingTs.toLocalDateTime();
+                        LocalDateTime arrivalDate = LocalDateTime.parse(arrivalDateTime, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+
+                        if (!shippingDate.isBefore(arrivalDate)) {
+                            conn.rollback();
+                            JOptionPane.showMessageDialog(null, "Violation of Business Rule 8: Shipping datetime ("+shippingDate+") must be strictly before arrival datetime ("+arrivalDate+").", "Business Rule Error", JOptionPane.ERROR_MESSAGE);
+                            return false;
+                        }
+                    }
+                }
+            }
+
+    		// If validation passes, update Delivery Info
+    		try(PreparedStatement stmtDelivery = conn.prepareStatement(sqlDelivery)){
+    			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                LocalDateTime ldt = LocalDateTime.parse(arrivalDateTime, formatter);
+                Timestamp timestamp = Timestamp.valueOf(ldt);
+                
+                stmtDelivery.setTimestamp(1, timestamp);
+                stmtDelivery.setInt(2, deliveryInfoID);
+
+                int affectedRows = stmtDelivery.executeUpdate(); 
+                if(affectedRows == 0) {
+                    conn.rollback();
+                    System.err.println("Arrival Date Time update failed (0 rows affected).");
+                    return false;
+                }
+    		}
+	
+    		try(PreparedStatement stmtProduct = conn.prepareStatement(sqlUpdateProductStocks)){
+    			stmtProduct.setInt(1, quantity);
+    			stmtProduct.setInt(2, productID);
+    			int affectedRows = stmtProduct.executeUpdate();
+    			if(affectedRows == 0) {
+    				conn.rollback();
+    				System.err.println("Product quantity update failed (0 rows affected).");
+    				return false;
+    			}
+    		}
+    		
+    		try(PreparedStatement stmtVehicle = conn.prepareStatement(sqlUpdateVehicle)){
+    			stmtVehicle.setInt(1, vehicleID);
+    			int affectedRows = stmtVehicle.executeUpdate();
+    			if(affectedRows == 0) {
+    				conn.rollback();
+    				System.err.println("Vehicle status update failed (0 rows affected).");
+    				return false;
+    			}
+    		}
+    		conn.commit();
+    		return true;
+    	}catch(SQLException e) {
+    		e.printStackTrace();
+    		JOptionPane.showMessageDialog(null, "Database error: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+    	}catch(Exception e) {
+    		e.printStackTrace();
+    		JOptionPane.showMessageDialog(null, "Formatting or unexpected error: " + e.getMessage(), "Application Error", JOptionPane.ERROR_MESSAGE);
+    	}
+    	return false;
+    }
+    
+    public LocalDateTime getShippingTimestamp(int supplierShipmentID) {
+        String sql = "SELECT di.shipping_datetime FROM Delivery_Info di " +
+                     "JOIN Supplier_Shipment ss ON di.delivery_id = ss.delivery_id " +
+                     "WHERE ss.supplier_shipment_id = ?";
+        
+        try (Connection conn = db.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, supplierShipmentID);
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    Timestamp ts = rs.getTimestamp("shipping_datetime");
+                    if (ts != null) {
+                        return ts.toLocalDateTime();
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+    
+    
     
     public boolean restockShipment(int productID, int supplierID, int vehicleID, int quantity, int cost, String shippingDateTime) {
 
@@ -681,6 +974,122 @@ public class AdminModel {
             model.addRow(row);
         }
         return model;
+    }
+    
+    public boolean processReturn(int orderDetailId, int qty, String reason, boolean resellable) {
+        String sqlGetDeliveryDate = 
+              "SELECT di.arrival_datetime, od.product_id "
+            + "FROM Order_Details od "
+            + "JOIN Orders o ON od.order_id = o.order_id "
+            + "JOIN Shipping s ON o.order_id = s.order_id "
+            + "JOIN Delivery_Info di ON s.delivery_id = di.delivery_id "
+            + "WHERE od.order_detail_id = ?";
+        
+        String sqlInsertReturn = "INSERT INTO Returns (order_detail_id, return_reason, product_quantity, return_date) VALUES (?, ?, ?, NOW())";
+        String sqlUpdateProduct = "UPDATE Products SET quantity = quantity + ? WHERE product_id = ?";
+        String sqlUpdateOrder = "UPDATE Orders o JOIN Order_Details od ON o.order_id = od.order_id SET o.status = 'Returned' WHERE od.order_detail_id = ?";
+
+        Connection conn = null;
+
+        try {
+            conn = db.getConnection();
+            conn.setAutoCommit(false);
+
+            int productId = -1;
+            
+            // 1. Validation: Check 7 Days Rule
+            try (PreparedStatement stmt = conn.prepareStatement(sqlGetDeliveryDate)) {
+                stmt.setInt(1, orderDetailId);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        Timestamp arrivalTs = rs.getTimestamp("arrival_datetime");
+                        productId = rs.getInt("product_id");
+                        
+                        if (arrivalTs == null) {
+                            JOptionPane.showMessageDialog(null, "Cannot return: Order hasn't arrived yet.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+                            conn.rollback();
+                            return false;
+                        }
+                        
+                        // Calculate difference in days
+                        long diffInMillis = System.currentTimeMillis() - arrivalTs.getTime();
+                        long diffInDays = diffInMillis / (1000 * 60 * 60 * 24);
+                        
+                        if (diffInDays > 7) {
+                            JOptionPane.showMessageDialog(null, "Return rejected: Order arrived more than 7 days ago (" + diffInDays + " days).", "Business Rule Violation", JOptionPane.WARNING_MESSAGE);
+                            conn.rollback();
+                            return false;
+                        }
+                    } else {
+                        JOptionPane.showMessageDialog(null, "Order Detail ID not found.", "Error", JOptionPane.ERROR_MESSAGE);
+                        conn.rollback();
+                        return false;
+                    }
+                }
+            }
+
+            // 2. Insert into Returns
+            try (PreparedStatement stmt = conn.prepareStatement(sqlInsertReturn)) {
+                stmt.setInt(1, orderDetailId);
+                stmt.setString(2, reason);
+                stmt.setInt(3, qty);
+                stmt.executeUpdate();
+            }
+
+            // 3. If resellable, update product quantity
+            if (resellable && productId != -1) {
+                try (PreparedStatement stmt = conn.prepareStatement(sqlUpdateProduct)) {
+                    stmt.setInt(1, qty);
+                    stmt.setInt(2, productId);
+                    stmt.executeUpdate();
+                }
+            }
+            
+            // 4. Update Order Status to Returned
+            try (PreparedStatement stmt = conn.prepareStatement(sqlUpdateOrder)) {
+                stmt.setInt(1, orderDetailId);
+                stmt.executeUpdate();
+            }
+
+            conn.commit();
+            return true;
+
+        } catch (SQLException e) {
+            if (conn != null) {
+                try { conn.rollback(); } catch (SQLException ex) { ex.printStackTrace(); }
+            }
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Database Error: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            return false;
+        } finally {
+            if (conn != null) {
+                try { conn.setAutoCommit(true); conn.close(); } catch (SQLException e) { e.printStackTrace(); }
+            }
+        }
+    }
+    
+    public LocalDateTime getShippingTimestamp(int supplierShipmentID) {
+        String sql = "SELECT di.shipping_datetime FROM Delivery_Info di " +
+                     "JOIN Supplier_Shipment ss ON di.delivery_id = ss.delivery_id " +
+                     "WHERE ss.supplier_shipment_id = ?";
+        
+        try (Connection conn = db.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, supplierShipmentID);
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    Timestamp ts = rs.getTimestamp("shipping_datetime");
+                    if (ts != null) {
+                        return ts.toLocalDateTime();
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
     
     public boolean isSupplierEmailUnique(String email) {

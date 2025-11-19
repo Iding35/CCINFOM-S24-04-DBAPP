@@ -38,8 +38,20 @@ public class AdminView extends JFrame {
     private JButton addProductButton;
     
     //add new supplier
+    private JTextField supplierNameField;
+    private JTextField supplierPhoneField;
+    private JTextField supplierEmailField;
+    private JTextField supplierStreetField;
+    private JTextField supplierCityField;
+    private JTextField supplierZipField;
+    private JButton addSupplierButton;
     
     //add new vehicle
+    private JTextField vehiclePlateField;
+    private JComboBox<String> vehicleTypeDropdown;
+    private JComboBox<String> vehicleStatusDropdown;
+    private JButton addVehicleButton;
+   
     
     //update order status
     private JTextField orderIdField;
@@ -150,11 +162,12 @@ public class AdminView extends JFrame {
         eastPanel.setBackground(Color.DARK_GRAY);
         eastPanel.setPreferredSize(new Dimension(400, 0)); 
         
+        
         //buttons for eastPanel
         updateProductButton = new JButton("Update Product");
         addProductButton = new JButton("Add Product");
-        //addSupplierButton = new JButton("Add Supplier");
-        //addVehicleButton = new JButton("Add Vehicle");
+        addSupplierButton = new JButton("Add Supplier");
+        addVehicleButton = new JButton("Add Vehicle");
         updateStatusButton = new JButton("Update Status");
         shipButton = new JButton("Ship Products");
         updateArrivalButton = new JButton("Arrived");
@@ -221,20 +234,21 @@ public class AdminView extends JFrame {
     }
     
     public JPanel createSupplierPanel() {
-    	JPanel panel = new JPanel();
-    	panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-    	panel.setBackground(Color.DARK_GRAY);
-    	//panel.add(createNewSupplierPanel());
-    	//panel.add(createUSupplierUpdatePanel());
-    	panel.add(Box.createVerticalGlue());
-    	return panel;
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBackground(Color.DARK_GRAY);
+        panel.add(createNewSupplierPanel());
+        panel.add(Box.createVerticalGlue());
+        return panel;
     }
     
     public JPanel createVehiclePanel() {
     	JPanel panel = new JPanel();
     	panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
     	panel.setBackground(Color.DARK_GRAY);
-    	//panel.add(createNewVehiclePanel());
+    	
+    	panel.add(createNewVehiclePanel());
+    	
     	//panel.add(createVehicleUpdatePanel());
     	panel.add(Box.createVerticalGlue());
     	return panel;
@@ -314,34 +328,33 @@ public class AdminView extends JFrame {
     }
     
     public void setEastPanelContent(String panelType) {
-    	eastPanel.removeAll();
-    	JPanel contentPanel = null;
-    	contentPanel = createProductPanel();
-    	
-    	if("PRODUCT".equals(panelType)) {
-    		contentPanel = createProductPanel();
-    	}
-//    	else if ("SUPPLIER".equals(panelType)) {
-//    		contentPanel = createSupplierPanel();
-//    	}
-//    	else if ("VEHICLE".equals(panelType)) {
-//    		contentPanel = createVehiclePanel();
-//    	}
-    	else if ("ORDER".equals(panelType)) {
-    		contentPanel = createOrderPanel();
-    	}
-    	else if ("RESTOCK".equals(panelType)) {
-    		contentPanel = createRestockPanel();
-    	}
-    	else if ("REPORT".equals(panelType)) {
-    		contentPanel = createReportPanel();
-    	}
-    	
-    	if(contentPanel != null) {
-    		eastPanel.add(contentPanel, BorderLayout.CENTER);
-    	}
-    	
-    	refreshFrame();
+        eastPanel.removeAll();
+        JPanel contentPanel = null;
+        
+        if("PRODUCT".equals(panelType)) {
+            contentPanel = createProductPanel();
+        }
+        else if ("SUPPLIER".equals(panelType)) {
+            contentPanel = createSupplierPanel();
+        }
+        else if ("VEHICLE".equals(panelType)) {
+            contentPanel = createVehiclePanel();
+        }
+        else if ("ORDER".equals(panelType)) {
+            contentPanel = createOrderPanel();
+        }
+        else if ("RESTOCK".equals(panelType)) {
+            contentPanel = createRestockPanel();
+        }
+        else if ("REPORT".equals(panelType)) {
+            contentPanel = createReportPanel();
+        }
+        
+        if(contentPanel != null) {
+            eastPanel.add(contentPanel, BorderLayout.CENTER);
+        }
+        
+        refreshFrame();
     }
     
     private JPanel createEastPanel(String title) {
@@ -353,6 +366,109 @@ public class AdminView extends JFrame {
             new Font("Veranda", Font.BOLD, 16), Color.WHITE
         ));
         panel.setBackground(Color.GRAY.darker());
+        
+        return panel;
+    }
+    
+    private JPanel createNewSupplierPanel() {
+            supplierNameField = new JTextField(15);
+            supplierPhoneField = new JTextField(15);
+            supplierEmailField = new JTextField(15);
+            supplierStreetField = new JTextField(15);
+            supplierCityField = new JTextField(15);
+            supplierZipField = new JTextField(15);
+            
+            JPanel panel = createEastPanel(" Add New Supplier ");
+            
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.insets = new Insets(5, 5, 5, 5);
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+            
+            JLabel lName = new JLabel("Company:");
+            JLabel lPhone = new JLabel("Phone:");
+            JLabel lEmail = new JLabel("Email:");
+            JLabel lStreet = new JLabel("Street:");
+            JLabel lCity = new JLabel("City:");
+            JLabel lZip = new JLabel("Zip Code:");
+            
+            lName.setForeground(Color.WHITE);
+            lPhone.setForeground(Color.WHITE);
+            lEmail.setForeground(Color.WHITE);
+            lStreet.setForeground(Color.WHITE);
+            lCity.setForeground(Color.WHITE);
+            lZip.setForeground(Color.WHITE);
+            addSupplierButton.setBackground(Color.decode("#ADD1DB"));
+            
+            // Row 0
+            gbc.gridx = 0; gbc.gridy = 0; panel.add(lName, gbc);
+            gbc.gridx = 1; gbc.gridy = 0; panel.add(supplierNameField, gbc);
+            
+            // Row 1
+            gbc.gridx = 0; gbc.gridy = 1; panel.add(lPhone, gbc);
+            gbc.gridx = 1; gbc.gridy = 1; panel.add(supplierPhoneField, gbc);
+            
+            // Row 2
+            gbc.gridx = 0; gbc.gridy = 2; panel.add(lEmail, gbc);
+            gbc.gridx = 1; gbc.gridy = 2; panel.add(supplierEmailField, gbc);
+            
+            // Row 3
+            gbc.gridx = 0; gbc.gridy = 3; panel.add(lStreet, gbc);
+            gbc.gridx = 1; gbc.gridy = 3; panel.add(supplierStreetField, gbc);
+            
+            // Row 4
+            gbc.gridx = 0; gbc.gridy = 4; panel.add(lCity, gbc);
+            gbc.gridx = 1; gbc.gridy = 4; panel.add(supplierCityField, gbc);
+            
+            // Row 5
+            gbc.gridx = 0; gbc.gridy = 5; panel.add(lZip, gbc);
+            gbc.gridx = 1; gbc.gridy = 5; panel.add(supplierZipField, gbc);
+            
+            // Row 6
+            gbc.gridx = 1; gbc.gridy = 6; gbc.anchor = GridBagConstraints.EAST;
+            panel.add(addSupplierButton, gbc);
+            
+            return panel;
+        }
+    
+    private JPanel createNewVehiclePanel() {
+        vehiclePlateField = new JTextField(15);
+        
+        String[] types = {"Car", "Motor", "Truck"};
+        vehicleTypeDropdown = new JComboBox<>(types);
+        
+        String[] statuses = {"Available", "Occupied"};
+        vehicleStatusDropdown = new JComboBox<>(statuses);
+        
+        JPanel panel = createEastPanel(" Add New Vehicle ");
+        
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        
+        JLabel lPlate = new JLabel("Plate No:");
+        JLabel lType = new JLabel("Type:");
+        JLabel lStatus = new JLabel("Status:");
+        
+        lPlate.setForeground(Color.WHITE);
+        lType.setForeground(Color.WHITE);
+        lStatus.setForeground(Color.WHITE);
+        addVehicleButton.setBackground(Color.decode("#ADD1DB"));
+        
+        // Row 0
+        gbc.gridx = 0; gbc.gridy = 0; panel.add(lPlate, gbc);
+        gbc.gridx = 1; gbc.gridy = 0; panel.add(vehiclePlateField, gbc);
+        
+        // Row 1
+        gbc.gridx = 0; gbc.gridy = 1; panel.add(lType, gbc);
+        gbc.gridx = 1; gbc.gridy = 1; panel.add(vehicleTypeDropdown, gbc);
+        
+        // Row 2
+        gbc.gridx = 0; gbc.gridy = 2; panel.add(lStatus, gbc);
+        gbc.gridx = 1; gbc.gridy = 2; panel.add(vehicleStatusDropdown, gbc);
+        
+        // Row 3
+        gbc.gridx = 1; gbc.gridy = 3; gbc.anchor = GridBagConstraints.EAST;
+        panel.add(addVehicleButton, gbc);
         
         return panel;
     }
@@ -723,6 +839,8 @@ public class AdminView extends JFrame {
     public String getNewProductCategoryDropdown() { return (String) newProductCategoryDropdown.getSelectedItem(); }
     public String getNewProductStatusDropdown() { return (String) newProductStatusDropdown.getSelectedItem(); }
     public void setAddProductAction(ActionListener listener) { addProductButton.addActionListener(listener); }
+    public void setAddSupplierAction(ActionListener listener) { if (addSupplierButton != null) addSupplierButton.addActionListener(listener); }
+    public void setAddVehicleAction(ActionListener listener) { if (addVehicleButton != null) addVehicleButton.addActionListener(listener); }
     
     public String getNewStatus() { return (String) newStatusOptions.getSelectedItem(); }
     public void setUpdateStatusAction(ActionListener listener) { if (updateStatusButton != null) updateStatusButton.addActionListener(listener); }
@@ -751,5 +869,16 @@ public class AdminView extends JFrame {
     public void setSalesReportAction(ActionListener listener) {
       if (salesReportButton != null)salesReportButton.addActionListener(listener);
     }
+    
+    public String getSupplierName() { return supplierNameField.getText(); }
+    public String getSupplierPhone() { return supplierPhoneField.getText(); }
+    public String getSupplierEmail() { return supplierEmailField.getText(); }
+    public String getSupplierStreet() { return supplierStreetField.getText(); }
+    public String getSupplierCity() { return supplierCityField.getText(); }
+    public String getSupplierZip() { return supplierZipField.getText(); }
+    
+    public String getVehiclePlate() { return vehiclePlateField.getText(); }
+    public String getVehicleType() { return (String) vehicleTypeDropdown.getSelectedItem(); }
+    public String getVehicleStatus() { return (String) vehicleStatusDropdown.getSelectedItem(); }
     
 }

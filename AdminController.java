@@ -27,8 +27,9 @@ public class AdminController {
     	//east panel
         view.setProductUpdateAction(e -> handleProductUpdate());
         view.setAddProductAction(e -> handleNewProduct());
-        //view.setAddSupplierAction(e -> handleNewSupplier());
-        //view.setAddVehicleAction(e -> handleNewVehicle());
+        
+        view.setAddSupplierAction(e -> handleNewSupplier());
+        view.setAddVehicleAction(e -> handleNewVehicle());
         view.setUpdateStatusAction(e -> handleOrderUpdateStatus());
         view.setShipAction(e -> handleRestock());
         view.setUpdateArrivalAction(e -> handleUpdateArrivalRestock());
@@ -180,6 +181,63 @@ public class AdminController {
 		    JOptionPane.showMessageDialog(view, "Product creation failed. Check required values.", "Error", JOptionPane.ERROR_MESSAGE);
 		}
     	
+    }
+    
+    private void handleNewSupplier() {
+        String name = view.getSupplierName();
+        String phone = view.getSupplierPhone();
+        String email = view.getSupplierEmail();
+        String street = view.getSupplierStreet();
+        String city = view.getSupplierCity();
+        String zip = view.getSupplierZip();
+        
+        if (name.isEmpty() || phone.isEmpty() || email.isEmpty() || 
+            street.isEmpty() || city.isEmpty() || zip.isEmpty()) {
+            JOptionPane.showMessageDialog(view, "Please fill in all fields.", "Input Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
+        if (!model.isSupplierEmailUnique(email)) {
+            JOptionPane.showMessageDialog(view, "Email address already exists.", "Validation Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        if (!model.isSupplierPhoneUnique(phone)) {
+            JOptionPane.showMessageDialog(view, "Phone number already exists.", "Validation Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+     
+        if (model.createNewSupplier(name, phone, email, street, city, zip)) {
+            JOptionPane.showMessageDialog(view, "Supplier added successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+            showSupplierListing();
+        } else {
+            JOptionPane.showMessageDialog(view, "Failed to add supplier.", "Database Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    private void handleNewVehicle() {
+        String plate = view.getVehiclePlate();
+        String type = view.getVehicleType();
+        String status = view.getVehicleStatus();
+
+        // 1. Validate input
+        if (plate.isEmpty() || type == null || status == null) {
+            JOptionPane.showMessageDialog(view, "Please fill in all fields.", "Input Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // 2. Check uniqueness
+        if (!model.isValidPlate(plate)) {
+            JOptionPane.showMessageDialog(view, "Plate number already exists.", "Validation Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // 3. Insert
+        if (model.createNewVehicle(plate, type, status)) {
+            JOptionPane.showMessageDialog(view, "Vehicle added successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+            showVehicleListing(); // Refresh list
+        } else {
+            JOptionPane.showMessageDialog(view, "Failed to add vehicle.", "Database Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
     
     private void handleProductUpdate() {

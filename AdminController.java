@@ -12,7 +12,7 @@ public class AdminController {
         this.model = model;
            
         setupActionListeners();
-        showProductListing();
+        showProductListing(); 
     }
 
     private void setupActionListeners() {
@@ -23,9 +23,7 @@ public class AdminController {
     	view.setViewOrdersAction(e -> showOrderListing());
     	view.setViewSupplierShipmentkAction(e -> showSupplierShipmentListing());
     	view.setViewReportsAction(e -> showReportPanel());
-    	
-    	// NEW: Hook the Logout action
-    	view.setReturnToLoginAction(e -> handleLogout());
+    	view.setViewReturnsAction(e -> showReturnListing());
     	
     	//east panel
         view.setProductUpdateAction(e -> handleProductUpdate());
@@ -37,17 +35,8 @@ public class AdminController {
         view.setShipAction(e -> handleRestock());
         view.setUpdateArrivalAction(e -> handleUpdateArrivalRestock());
         view.setSalesReportAction(e -> handleGenerateReport());
-    }
-    
-    // NEW: Method to handle logout and return to the main Login screen
-    private void handleLogout() {
-        // Close the current Admin frame
-        view.dispose();
         
-        // Launch the Login MVC pair
-        LoginView loginView = new LoginView();
-        LoginModel loginModel = new LoginModel();
-        new LoginController(loginView, loginModel);
+        view.setProcessReturnAction(e -> handleReturnProduct());
     }
     
     private void showReportPanel() {
@@ -168,6 +157,16 @@ public class AdminController {
     	}
     }
     
+    private void showReturnListing() {
+        view.setEastPanelContent("RETURN");
+        try {
+            view.displayTableData(model.getReturnsListing());
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(view, "Error loading returns list: " + ex.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+            ex.printStackTrace();
+        }
+    }
+    
     private void handleNewProduct(){
     	String name = view.getProductNameField();
     	String description = view.getProductDescriptionField();
@@ -184,8 +183,8 @@ public class AdminController {
         }
         
     	if(name.isEmpty() || description.isEmpty() || brand.isEmpty() ||
-    			price == null || price <= 0 || category.isEmpty() || status.isEmpty()) {
-    		JOptionPane.showMessageDialog(view, "Please fill in all fields, and ensure Price is valid.", "Error", JOptionPane.ERROR_MESSAGE);
+    			price == null || category.isEmpty() || status.isEmpty()) {
+    		JOptionPane.showMessageDialog(view, "Please fill in all fields.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
     	}
     	
@@ -288,6 +287,10 @@ public class AdminController {
         }
     }
     
+    /*private void handleNewSupplier()*/
+    
+    /*private void handleNewVehicle()*/
+    
     private String getCurrentDateTime() {
     	DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     	LocalDateTime currentDateTime = LocalDateTime.now();
@@ -315,10 +318,9 @@ public class AdminController {
     		JOptionPane.showMessageDialog(view, "All fields must be in a number format.", "Input Error", JOptionPane.ERROR_MESSAGE);
             return;
     	}
-        
-        // CRITICAL BUSINESS RULE: Each shipment must contain at least one product.
-        if (quantity == null || quantity <= 0) {
-            JOptionPane.showMessageDialog(view, "Quantity must be greater than zero.", "Input Error", JOptionPane.ERROR_MESSAGE);
+    	
+    	if(quantity <= 0) {
+            JOptionPane.showMessageDialog(view, "Quantity must be greater than 0.", "Input Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
     	
@@ -327,15 +329,20 @@ public class AdminController {
             return;
     	}
     	
-    	if(productID == null || supplierID == null || vehicleID == null || cost == null) {
+    	if(productID == null || supplierID == null || quantity == null || cost == null) {
     		JOptionPane.showMessageDialog(view, "Please fill in all fields.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
     	}
-        
+    	
+    	if (quantity <= 0) {
+    		JOptionPane.showMessageDialog(view, "Quantity must be greater than zero.", "Input Error", JOptionPane.ERROR_MESSAGE);
+            return;
+    	}
+    	
     	if (model.restockShippment(productID, supplierID, vehicleID, quantity, cost, shippingDateTime)) {
 		    JOptionPane.showMessageDialog(view, "Product is shipping!", "Success", JOptionPane.INFORMATION_MESSAGE);
 		} else {
-		    JOptionPane.showMessageDialog(view, "Restock failed. Check required values or database connection.", "Error", JOptionPane.ERROR_MESSAGE);
+		    JOptionPane.showMessageDialog(view, "Supplier creation failed. Check required values.", "Error", JOptionPane.ERROR_MESSAGE);
 		}
     }
     
@@ -356,6 +363,15 @@ public class AdminController {
     		JOptionPane.showMessageDialog(view, "The shipment has already been completed.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
     	}
+    	
+    	LocalDateTime shippingDate = model.getShippingTimestamp(supplierShipmentID);
+    	LocalDateTime arrivalDate = LocalDateTime.parse(arrivalDateTime, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+    	
+    	// Check if arrival is before shipping
+    	if(shippingDate != null && !shippingDate.isBefore(arrivalDate)) {
+    		JOptionPane.showMessageDialog(view, "Arrival time cannot be before the shipping time.", "Validation Error", JOptionPane.ERROR_MESSAGE);
+            return;
+    	}
 
     	if(model.restockArrivalUpdate(supplierShipmentID, arrivalDateTime)) {
     		JOptionPane.showMessageDialog(view, "Arrival DateTime is updated.", "Success", JOptionPane.INFORMATION_MESSAGE);
@@ -364,6 +380,87 @@ public class AdminController {
 		}
     	
     }
+	
+	private void handleOrderUpdateStatus() {
+        String idText = view.getOrderIdField();
+        String newStatus = view.getNewStatus();
+
+        if (idText.isEmpty()) {
+            JOptionPane.showMessageDialog(view, "Please enter Order ID.", "Input Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        try {
+            int orderId = Integer.parseInt(idText);
+            boolean success = false;
+
+            if ("Shipping".equals(newStatus)) {
+                // Get vehicle
+                String vehicleStr = view.getSelectedVehicleForOrder();
+                if (vehicleStr == null) {
+                    JOptionPane.showMessageDialog(view, "Please select an available vehicle for shipping.", "Input Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                // Extract ID from string "9000 - Plate"
+                int vehicleId = Integer.parseInt(vehicleStr.split(" - ")[0]);
+                
+                success = model.shipOrder(orderId, vehicleId);
+                if (success) refreshVehicleDropdown(); // Vehicle is now occupied, update list
+                
+            } else if ("Completed".equals(newStatus)) {
+                success = model.completeOrder(orderId);
+                if (success) refreshVehicleDropdown(); // Vehicle is now available, update list
+
+            } else {
+                // Normal status update for "Pending" or "Returned"
+                success = model.updateOrderStatus(orderId, newStatus);
+            }
+
+            if (success) {
+                JOptionPane.showMessageDialog(view, "Status updated successfully for Order ID: " + orderId + " to " + newStatus, "Success", JOptionPane.INFORMATION_MESSAGE);
+                showOrderListing();
+            } else {
+                JOptionPane.showMessageDialog(view, "Update failed. Check Order ID or status logic.", "Update Failed", JOptionPane.WARNING_MESSAGE);
+            }
+
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(view, "Order ID must be a valid whole number.", "Input Format Error", JOptionPane.ERROR_MESSAGE);
+        } catch (Exception ex) { // Catch generic to handle string split errors if any
+            JOptionPane.showMessageDialog(view, "Error processing update: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            ex.printStackTrace();
+        }
+    }
+	
+	private void handleReturnProduct() {
+        String odIdStr = view.getReturnOrderDetailId();
+        String qtyStr = view.getReturnQuantity();
+        String reason = view.getReturnReason();
+        boolean isResellable = view.isReturnResellable();
+
+        if (odIdStr.isEmpty() || qtyStr.isEmpty() || reason.isEmpty()) {
+            JOptionPane.showMessageDialog(view, "Please fill in all fields.", "Input Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        try {
+            int orderDetailId = Integer.parseInt(odIdStr);
+            int quantity = Integer.parseInt(qtyStr);
+
+            if (quantity <= 0) {
+                JOptionPane.showMessageDialog(view, "Quantity must be greater than 0.", "Input Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            if (model.processReturn(orderDetailId, quantity, reason, isResellable)) {
+                JOptionPane.showMessageDialog(view, "Return processed successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                showReturnListing(); // Refresh the table
+            } 
+
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(view, "Order Detail ID and Quantity must be valid numbers.", "Input Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+	
 
     private void handleOrderUpdateStatus() {
         String idText = view.getOrderIdField();
